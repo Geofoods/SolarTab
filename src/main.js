@@ -1,22 +1,28 @@
 import './style.css';
 
-const apiKeyStatus = import.meta.env.VITE_NASA_API_KEY ? 'Configured' : 'Missing';
+const API_KEY = import.meta.env.VITE_NASA_API_KEY;
 
-document.querySelector('#app').innerHTML = `
-  <main class="shell">
-    <section class="hero">
-      <p class="eyebrow">SolarTab</p>
-      <h1>NASA-ready Vite starter</h1>
-      <p class="lead">
-        The scaffold has been cleaned out and the app is ready for your NASA API work.
-      </p>
-      <div class="status-card" aria-label="API key status">
-        <span>NASA API key</span>
-        <strong>${apiKeyStatus}</strong>
-      </div>
-      <p class="hint">
-        Restart the dev server any time you change <code>.env</code>.
-      </p>
-    </section>
-  </main>
-`;
+document.querySelector('#app').innerHTML = '<p>loading...</p>';
+
+fetch(`https://api.nasa.gov/planetary/apod?api_key=${API_KEY}`)
+  .then(response => response.json())
+  .then(data => {
+    let media;
+
+    if (data.media_type === 'image') {
+      media = `<img src="${data.url}" />`;
+    } else if (data.url.includes('youtube')) {
+      media = `<iframe src="${data.url}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else {
+      media = `<video src="${data.url}" controls></video>`;
+    }
+
+    document.querySelector('#app').innerHTML = `
+      <h1>${data.title}</h1>
+      ${media}
+      <p>${data.explanation}</p>
+    `;
+  })
+  .catch(err => {
+    document.querySelector('#app').innerHTML = `<p>Error: ${err.message}</p>`;
+  });
