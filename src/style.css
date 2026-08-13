@@ -276,6 +276,24 @@ body::after {
   color: rgba(245, 240, 255, 0.45);
 }
 
+.search select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #b39cff;
+  font: inherit;
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding-right: 18px;
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.search select option {
+  background: #140b30;
+  color: #f5f0ff;
+}
+
 .search button {
   border: none;
   border-radius: 999px;

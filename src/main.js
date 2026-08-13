@@ -10,6 +10,7 @@ const greetingEl = document.querySelector('#greeting');
 const dateEl = document.querySelector('#date');
 const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
+const searchEngine = document.querySelector('#search-engine');
 const linksEl = document.querySelector('#quick-links');
 const bg = document.querySelector('#bg');
 const titleEl = document.querySelector('#apod-title');
@@ -162,7 +163,17 @@ searchForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const q = searchInput.value.trim();
   if (!q) return;
-  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, '_blank', 'noopener');
+  const urls = {
+    google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+    bing: `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
+    duckduckgo: `https://duckduckgo.com/?q=${encodeURIComponent(q)}`
+  };
+  window.open(urls[searchEngine.value], '_blank', 'noopener');
+});
+
+searchEngine.value = localStorage.getItem('solartab:engine') || 'google';
+searchEngine.addEventListener('change', () => {
+  localStorage.setItem('solartab:engine', searchEngine.value);
 });
 
 function renderLinks() {
