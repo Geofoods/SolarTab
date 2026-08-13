@@ -7,7 +7,6 @@ const MIN_DATE = '1995-06-16';
 const todayEl = document.querySelector('#today');
 const clockEl = document.querySelector('#clock');
 const greetingEl = document.querySelector('#greeting');
-const dateEl = document.querySelector('#date');
 const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
 const searchEngine = document.querySelector('#search-engine');
@@ -69,7 +68,7 @@ function setGreeting() {
   if (h >= 5 && h < 12) msg = 'Good morning';
   else if (h >= 12 && h < 17) msg = 'Good afternoon';
   else if (h >= 17 && h < 21) msg = 'Good evening';
-  greetingEl.textContent = `${msg}, explorer`;
+  greetingEl.textContent = msg;
 }
 
 async function fetchApod(date) {
@@ -176,6 +175,14 @@ searchEngine.addEventListener('change', () => {
   localStorage.setItem('solartab:engine', searchEngine.value);
 });
 
+function faviconFor(url) {
+  try {
+    return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`;
+  } catch {
+    return null;
+  }
+}
+
 function renderLinks() {
   linksEl.innerHTML = '';
   links.forEach((link, i) => {
@@ -186,10 +193,30 @@ function renderLinks() {
     a.classList.add('link');
     a.title = link.name;
     a.innerHTML = `
-      <span class="link-icon">${link.name.charAt(0).toUpperCase()}</span>
+      <span class="link-icon"></span>
       <span class="link-name">${link.name}</span>
       <button class="link-remove" data-i="${i}" title="Remove ${link.name}" aria-label="Remove ${link.name}">×</button>
     `;
+    const iconEl = a.querySelector('.link-icon');
+    const letter = document.createElement('span');
+    letter.className = 'link-letter';
+    letter.textContent = link.name.charAt(0).toUpperCase();
+    const favicon = faviconFor(link.url);
+    if (favicon) {
+      const img = document.createElement('img');
+      img.className = 'link-img';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.src = favicon;
+      img.addEventListener('error', () => {
+        img.remove();
+        letter.classList.add('show');
+      });
+      iconEl.append(img, letter);
+    } else {
+      letter.classList.add('show');
+      iconEl.append(letter);
+    }
     a.addEventListener('click', (e) => {
       if (e.target.closest('.link-remove')) e.preventDefault();
     });
@@ -240,7 +267,6 @@ tickClock();
 setInterval(tickClock, 1000);
 setGreeting();
 todayEl.textContent = dateDisplay.format(now);
-dateEl.textContent = dateDisplay.format(now);
 dateInput.max = todayStr;
 renderLinks();
 fetchApod(todayStr);
