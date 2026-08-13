@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: 'Black Ops One', system-ui, -apple-system, sans-serif;
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -8,16 +8,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --bg: #07040f;
-  --surface: rgba(16, 11, 36, 0.5);
-  --surface-solid: #130b2e;
-  --accent: #7c4dff;
-  --accent-dim: rgba(124, 77, 255, 0.22);
-  --text: #f5f0ff;
-  --text-soft: rgba(245, 240, 255, 0.72);
-  --text-faint: rgba(245, 240, 255, 0.45);
-  --line: rgba(179, 156, 255, 0.18);
-  --line-strong: rgba(179, 156, 255, 0.42);
+  --bg: #06060a;
+  --surface: rgba(20, 22, 28, 0.4);
+  --surface-solid: #14161c;
+  --accent: #5a8bff;
+  --accent-dim: rgba(90, 139, 255, 0.18);
+  --text: #f5f6ff;
+  --text-soft: rgba(245, 246, 255, 0.7);
+  --text-faint: rgba(245, 246, 255, 0.42);
+  --line: rgba(255, 255, 255, 0.16);
+  --line-strong: rgba(255, 255, 255, 0.34);
   color: var(--text);
   background: var(--bg);
 }
@@ -75,117 +75,8 @@ button {
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(180deg, rgba(7, 4, 15, 0.7) 0%, rgba(7, 4, 15, 0.32) 42%, rgba(7, 4, 15, 0.75) 100%);
-}
-
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  width: 4%;
-  z-index: 1;
-  background: linear-gradient(180deg, rgba(124, 77, 255, 0.5) 0%, rgba(58, 31, 143, 0.5) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.1) 40%, rgba(0, 0, 0, 0.55) 100%);
   pointer-events: none;
-}
-
-body::before {
-  left: 0;
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    78% 2.5%,
-    100% 5%,
-    78% 7.5%,
-    100% 10%,
-    78% 12.5%,
-    100% 15%,
-    78% 17.5%,
-    100% 20%,
-    78% 22.5%,
-    100% 25%,
-    78% 27.5%,
-    100% 30%,
-    78% 32.5%,
-    100% 35%,
-    78% 37.5%,
-    100% 40%,
-    78% 42.5%,
-    100% 45%,
-    78% 47.5%,
-    100% 50%,
-    78% 52.5%,
-    100% 55%,
-    78% 57.5%,
-    100% 60%,
-    78% 62.5%,
-    100% 65%,
-    78% 67.5%,
-    100% 70%,
-    78% 72.5%,
-    100% 75%,
-    78% 77.5%,
-    100% 80%,
-    78% 82.5%,
-    100% 85%,
-    78% 87.5%,
-    100% 90%,
-    78% 92.5%,
-    100% 95%,
-    78% 97.5%,
-    100% 100%,
-    0 100%
-  );
-}
-
-body::after {
-  right: 0;
-  clip-path: polygon(
-    100% 0,
-    0 0,
-    22% 2.5%,
-    0 5%,
-    22% 7.5%,
-    0 10%,
-    22% 12.5%,
-    0 15%,
-    22% 17.5%,
-    0 20%,
-    22% 22.5%,
-    0 25%,
-    22% 27.5%,
-    0 30%,
-    22% 32.5%,
-    0 35%,
-    22% 37.5%,
-    0 40%,
-    22% 42.5%,
-    0 45%,
-    22% 47.5%,
-    0 50%,
-    22% 52.5%,
-    0 55%,
-    22% 57.5%,
-    0 60%,
-    22% 62.5%,
-    0 65%,
-    22% 67.5%,
-    0 70%,
-    22% 72.5%,
-    0 75%,
-    22% 77.5%,
-    0 80%,
-    22% 82.5%,
-    0 85%,
-    22% 87.5%,
-    0 90%,
-    22% 92.5%,
-    0 95%,
-    22% 97.5%,
-    0 100%,
-    100% 100%
-  );
 }
 
 .topbar {
@@ -195,13 +86,6 @@ body::after {
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
-}
-
-.brand {
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  font-size: 0.8rem;
 }
 
 .today {
@@ -230,14 +114,6 @@ body::after {
   }
 }
 
-.greeting {
-  margin: 0;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-}
-
 .clock {
   margin: 8px 0 30px;
   font-family: 'Orbitron', sans-serif;
@@ -245,7 +121,7 @@ body::after {
   line-height: 1;
   letter-spacing: 0.04em;
   color: var(--text);
-  text-shadow: 0 2px 32px rgba(124, 77, 255, 0.28);
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.35);
 }
 
 .search {
@@ -264,7 +140,7 @@ body::after {
 
 .search:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(124, 77, 255, 0.18);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(90, 139, 255, 0.14);
 }
 
 .search select {
@@ -308,7 +184,8 @@ body::after {
   padding: 9px 20px;
   background: var(--accent);
   color: #fff;
-  font-family: 'Black Ops One', sans-serif;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 
@@ -361,7 +238,8 @@ body::after {
 
 .link-letter {
   display: none;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
   font-size: 1.2rem;
   color: var(--accent);
 }
@@ -424,8 +302,9 @@ body::after {
   border-radius: 14px;
   border: 1px dashed var(--line-strong);
   color: var(--text-faint);
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Manrope', sans-serif;
   font-size: 1.4rem;
+  font-weight: 700;
   transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
@@ -452,7 +331,7 @@ body::after {
   padding: 18px 22px 14px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: rgba(10, 7, 24, 0.55);
+  background: rgba(8, 10, 14, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
@@ -468,7 +347,8 @@ body::after {
 
 .apod-title {
   margin: 0;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
   font-size: clamp(1rem, 2.2vw, 1.4rem);
   letter-spacing: 0.01em;
   line-height: 1.25;
@@ -595,7 +475,7 @@ body::after {
   z-index: 50;
   display: grid;
   place-items: center;
-  background: rgba(5, 3, 12, 0.7);
+  background: rgba(4, 5, 8, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -615,7 +495,8 @@ body::after {
 
 .modal-box h2 {
   margin: 0;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
   font-size: 1.15rem;
   text-align: center;
 }
@@ -624,7 +505,7 @@ body::after {
   padding: 11px 14px;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: rgba(20, 14, 48, 0.8);
+  background: rgba(18, 20, 26, 0.6);
   color: var(--text);
   font: inherit;
   font-family: inherit;
@@ -646,7 +527,8 @@ body::after {
   border-radius: 10px;
   border: 1px solid var(--line-strong);
   background: var(--accent-dim);
-  font-family: 'Black Ops One', sans-serif;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
   transition: filter 0.15s ease;
 }
 
@@ -655,11 +537,6 @@ body::after {
 }
 
 @media (max-width: 600px) {
-  body::before,
-  body::after {
-    display: none;
-  }
-
   #app {
     padding: 20px 16px 18px;
   }

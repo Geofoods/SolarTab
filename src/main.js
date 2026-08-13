@@ -6,7 +6,6 @@ const MIN_DATE = '1995-06-16';
 
 const todayEl = document.querySelector('#today');
 const clockEl = document.querySelector('#clock');
-const greetingEl = document.querySelector('#greeting');
 const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
 const searchEngine = document.querySelector('#search-engine');
@@ -60,15 +59,6 @@ function toDateStr(d) {
 function tickClock() {
   const d = new Date();
   clockEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-function setGreeting() {
-  const h = new Date().getHours();
-  let msg = 'Good night';
-  if (h >= 5 && h < 12) msg = 'Good morning';
-  else if (h >= 12 && h < 17) msg = 'Good afternoon';
-  else if (h >= 17 && h < 21) msg = 'Good evening';
-  greetingEl.textContent = msg;
 }
 
 async function fetchApod(date) {
@@ -265,7 +255,6 @@ modal.addEventListener('click', (e) => {
 
 tickClock();
 setInterval(tickClock, 1000);
-setGreeting();
 todayEl.textContent = dateDisplay.format(now);
 dateInput.max = todayStr;
 renderLinks();
