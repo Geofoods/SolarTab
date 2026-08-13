@@ -541,6 +541,10 @@ body::after {
   color: rgba(245, 240, 255, 0.42);
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .modal {
   position: fixed;
   inset: 0;
