@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SolarTab — New Tab</title>
     <meta name="description" content="SolarTab — a custom new tab page featuring NASA's Astronomy Picture of the Day." />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="app">
@@ -49,6 +49,31 @@
           <p class="credit">Astronomy Picture of the Day · NASA</p>
         </div>
       </footer>
+    </div>
+
+    <div class="widgets">
+      <aside class="calendar" id="calendar" aria-label="Calendar">
+        <div class="calendar-head">
+          <button class="calendar-nav" id="cal-prev" type="button" title="Previous month">←</button>
+          <h2 class="calendar-title" id="cal-title">--</h2>
+          <button class="calendar-nav" id="cal-next" type="button" title="Next month">→</button>
+        </div>
+        <div class="calendar-weekdays" id="cal-weekdays"></div>
+        <div class="calendar-grid" id="cal-grid"></div>
+      </aside>
+
+      <aside class="weather" id="weather" aria-label="Weather">
+        <button class="weather-city" id="weather-city" type="button" title="Set location">Set location</button>
+        <form class="weather-edit" id="weather-edit" hidden>
+          <input id="weather-input" type="text" placeholder="Search city..." autocomplete="off" maxlength="80" />
+        </form>
+        <div class="weather-main">
+          <div class="weather-temp" id="weather-temp">--°</div>
+          <div class="weather-icon" id="weather-icon"></div>
+        </div>
+        <div class="weather-desc" id="weather-desc">Click above to set your location</div>
+        <div class="weather-meta" id="weather-meta"></div>
+      </aside>
     </div>
 
     <div class="modal" id="add-modal" hidden>

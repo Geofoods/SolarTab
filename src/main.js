@@ -19,11 +19,54 @@ const favBtn = document.querySelector('#fav-btn');
 const prevBtn = document.querySelector('#prev-btn');
 const nextBtn = document.querySelector('#next-btn');
 const dateInput = document.querySelector('#date-input');
+const weather = document.querySelector('#weather');
+const weatherCity = document.querySelector('#weather-city');
+const weatherEdit = document.querySelector('#weather-edit');
+const weatherInput = document.querySelector('#weather-input');
+const weatherTemp = document.querySelector('#weather-temp');
+const weatherIcon = document.querySelector('#weather-icon');
+const weatherDesc = document.querySelector('#weather-desc');
+const weatherMeta = document.querySelector('#weather-meta');
+const calTitle = document.querySelector('#cal-title');
+const calPrev = document.querySelector('#cal-prev');
+const calNext = document.querySelector('#cal-next');
+const calWeekdays = document.querySelector('#cal-weekdays');
+const calGrid = document.querySelector('#cal-grid');
 const modal = document.querySelector('#add-modal');
 const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
 const addUrl = document.querySelector('#add-url');
 const addCancel = document.querySelector('#add-cancel');
+
+const WMO = {
+  0: ['Clear sky', '☀️'],  1: ['Mostly clear', '🌤️'],
+  2: ['Partly cloudy', '⛅'],
+  3: ['Overcast', '☁️'],
+  45: ['Fog', '🌫️'],
+  48: ['Fog', '🌫️'],
+  51: ['Light drizzle', '🌦️'],
+  53: ['Drizzle', '🌦️'],
+  55: ['Heavy drizzle', '🌧️'],
+  56: ['Freezing drizzle', '🌧️'],
+  57: ['Freezing drizzle', '🌧️'],
+  61: ['Light rain', '🌦️'],
+  63: ['Rain', '🌧️'],
+  65: ['Heavy rain', '🌧️'],
+  66: ['Freezing rain', '🌧️'],
+  67: ['Freezing rain', '🌧️'],
+  71: ['Light snow', '🌨️'],
+  73: ['Snow', '🌨️'],
+  75: ['Heavy snow', '❄️'],
+  77: ['Snow grains', '🌨️'],
+  80: ['Light showers', '🌦️'],
+  81: ['Showers', '🌧️'],
+  82: ['Heavy showers', '⛈️'],
+  85: ['Snow showers', '🌨️'],
+  86: ['Snow showers', '❄️'],
+  95: ['Thunderstorm', '⛈️'],
+  96: ['Thunderstorm', '⛈️'],
+  99: ['Thunderstorm', '⛈️']
+};
 
 const DEFAULT_LINKS = [
   { name: 'NASA', url: 'https://www.nasa.gov' },
@@ -253,9 +296,193 @@ modal.addEventListener('click', (e) => {
   if (e.target === modal) modal.hidden = true;
 });
 
+function weatherLabel(code) {
+  return (WMO[code] || ['Unknown', '🌡️'])[0];
+}
+
+function weatherEmoji(code) {
+  return (WMO[code] || ['Unknown', '🌡️'])[1];
+}
+
+function saveWeather(city, lat, lon) {
+  localStorage.setItem('solartab:weather', JSON.stringify({ city, lat, lon }));
+}
+
+function setLocationNone() {
+  weatherCity.textContent = 'Set location';
+  weatherTemp.textContent = '--°';
+  weatherIcon.textContent = '';
+  weatherDesc.textContent = 'Click above to set your location';
+  weatherMeta.textContent = '';
+}
+
+function closeWeatherEdit() {
+  weatherEdit.hidden = true;
+}
+
+async function renderWeather(city, lat, lon) {
+  weatherCity.textContent = city;
+  weatherDesc.textContent = 'Loading...';
+  weatherMeta.textContent = '';
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m` +
+      `&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const c = data.current;
+    const d = data.daily;
+    weatherTemp.textContent = `${Math.round(c.temperature_2m)}°`;
+    weatherIcon.textContent = weatherEmoji(c.weather_code);
+    weatherDesc.textContent = weatherLabel(c.weather_code);
+    weatherMeta.textContent = [
+      `H ${Math.round(d.temperature_2m_max[0])}°  L ${Math.round(d.temperature_2m_min[0])}°`,
+      `${Math.round(c.relative_humidity_2m)}%`,
+      `${Math.round(c.wind_speed_10m)} km/h`
+    ].join('  ·  ');
+  } catch (err) {
+    weatherTemp.textContent = '--°';
+    weatherIcon.textContent = '';
+    weatherDesc.textContent = 'Weather unavailable';
+    weatherMeta.textContent = '';
+  }
+}
+
+function initWeather() {
+  const saved = JSON.parse(localStorage.getItem('solartab:weather') || 'null');
+  if (saved && typeof saved.lat === 'number' && typeof saved.lon === 'number') {
+    renderWeather(saved.city || 'Saved location', saved.lat, saved.lon);
+    return;
+  }
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        let city = 'Current location';
+        try {
+          const r = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+          );
+          if (r.ok) {
+            const g = await r.json();
+            city = g.city || g.locality || g.principalSubdivision || 'Current location';
+          }
+        } catch {}
+        saveWeather(city, lat, lon);
+        renderWeather(city, lat, lon);
+      },
+      setLocationNone
+    );
+  } else {
+    setLocationNone();
+  }
+}
+
+weatherCity.addEventListener('click', () => {
+  weatherEdit.hidden = false;
+  weatherInput.value = '';
+  weatherInput.focus();
+});
+
+weatherEdit.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = weatherInput.value.trim();
+  if (!q) return closeWeatherEdit();
+  try {
+    const res = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const g = await res.json();
+    const hit = g.results && g.results[0];
+    if (!hit) {
+      weatherDesc.textContent = 'City not found';
+      return;
+    }
+    const city = [hit.name, hit.admin1].filter(Boolean).join(', ');
+    saveWeather(city, hit.latitude, hit.longitude);
+    closeWeatherEdit();
+    renderWeather(city, hit.latitude, hit.longitude);
+  } catch {
+    weatherDesc.textContent = 'Search failed';
+  }
+});
+
+weatherInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeWeatherEdit();
+});
+
+document.addEventListener('click', (e) => {
+  if (!weather.contains(e.target)) closeWeatherEdit();
+});
+
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const CAL_MONTHS = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+let calYear;
+let calMonth;
+
+function renderCalendar() {
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date();
+
+  calTitle.textContent = CAL_MONTHS.format(first);
+
+  calWeekdays.innerHTML = '';
+  WEEKDAYS.forEach((d) => {
+    const el = document.createElement('span');
+    el.textContent = d;
+    calWeekdays.appendChild(el);
+  });
+
+  calGrid.innerHTML = '';
+  for (let i = 0; i < startDow; i++) {
+    calGrid.appendChild(document.createElement('span'));
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const el = document.createElement('span');
+    el.textContent = d;
+    if (calYear === today.getFullYear() && calMonth === today.getMonth() && d === today.getDate()) {
+      el.classList.add('today');
+    }
+    calGrid.appendChild(el);
+  }
+}
+
+calPrev.addEventListener('click', () => {
+  calMonth--;
+  if (calMonth < 0) {
+    calMonth = 11;
+    calYear--;
+  }
+  renderCalendar();
+});
+
+calNext.addEventListener('click', () => {
+  calMonth++;
+  if (calMonth > 11) {
+    calMonth = 0;
+    calYear++;
+  }
+  renderCalendar();
+});
+
+function initCalendar() {
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+  renderCalendar();
+}
+
 tickClock();
 setInterval(tickClock, 1000);
 todayEl.textContent = dateDisplay.format(now);
 dateInput.max = todayStr;
 renderLinks();
+initCalendar();
+initWeather();
 fetchApod(todayStr);
