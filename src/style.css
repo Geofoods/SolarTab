@@ -129,7 +129,7 @@ button {
   align-items: center;
   width: min(520px, 88vw);
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: 6px;
   padding: 5px 5px 5px 18px;
   background: var(--surface);
   backdrop-filter: blur(14px);
@@ -180,7 +180,7 @@ button {
 
 .search button {
   border: none;
-  border-radius: 999px;
+  border-radius: 4px;
   padding: 9px 20px;
   background: var(--accent);
   color: #fff;
@@ -220,7 +220,7 @@ button {
   place-items: center;
   width: 46px;
   height: 46px;
-  border-radius: 14px;
+  border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--line-strong);
   backdrop-filter: blur(12px);
@@ -275,7 +275,7 @@ button {
   width: 18px;
   height: 18px;
   border: none;
-  border-radius: 50%;
+  border-radius: 4px;
   background: rgba(255, 82, 82, 0.9);
   color: #fff;
   font-size: 0.85rem;
@@ -299,7 +299,7 @@ button {
   place-items: center;
   width: 46px;
   height: 46px;
-  border-radius: 14px;
+  border-radius: 6px;
   border: 1px dashed var(--line-strong);
   color: var(--text-faint);
   font-family: 'Manrope', sans-serif;
@@ -330,7 +330,7 @@ button {
   width: min(680px, 100%);
   padding: 18px 22px 14px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 6px;
   background: rgba(8, 10, 14, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -358,7 +358,7 @@ button {
 .fav {
   flex: none;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--surface);
   width: 38px;
   height: 38px;
@@ -408,7 +408,7 @@ button {
 .apod-media video,
 .apod-media iframe {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 4px;
   border: 1px solid var(--line);
 }
 
@@ -426,7 +426,7 @@ button {
 
 .action {
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--surface);
   width: 40px;
   height: 40px;
@@ -447,7 +447,7 @@ button {
 
 #date-input {
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 8px 12px;
   background: var(--surface);
   color: var(--text);
@@ -487,7 +487,7 @@ button {
   width: min(360px, 88vw);
   padding: 26px;
   border: 1px solid var(--line-strong);
-  border-radius: 18px;
+  border-radius: 6px;
   background: var(--surface-solid);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
   animation: rise-in 0.25s ease both;
@@ -504,7 +504,7 @@ button {
 .modal-box input {
   padding: 11px 14px;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: 4px;
   background: rgba(18, 20, 26, 0.6);
   color: var(--text);
   font: inherit;
@@ -524,7 +524,7 @@ button {
 
 .modal-actions button {
   padding: 9px 18px;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--line-strong);
   background: var(--accent-dim);
   font-family: 'Manrope', sans-serif;
