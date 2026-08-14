@@ -32,6 +32,9 @@ const calPrev = document.querySelector('#cal-prev');
 const calNext = document.querySelector('#cal-next');
 const calWeekdays = document.querySelector('#cal-weekdays');
 const calGrid = document.querySelector('#cal-grid');
+const todoList = document.querySelector('#todo-list');
+const todoAdd = document.querySelector('#todo-add');
+const todoInput = document.querySelector('#todo-input');
 const modal = document.querySelector('#add-modal');
 const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
@@ -478,6 +481,67 @@ function initCalendar() {
   renderCalendar();
 }
 
+let todos = JSON.parse(localStorage.getItem('solartab:todos') || '[]');
+
+function saveTodos() {
+  localStorage.setItem('solartab:todos', JSON.stringify(todos));
+}
+
+function renderTodos() {
+  todoList.innerHTML = '';
+  if (todos.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'todo-empty';
+    li.textContent = 'No tasks yet';
+    todoList.appendChild(li);
+    return;
+  }
+  todos.forEach((todo, i) => {
+    const li = document.createElement('li');
+    li.className = 'todo-item' + (todo.done ? ' done' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!todo.done;
+    cb.setAttribute('aria-label', `Mark "${todo.text}" done`);
+    cb.addEventListener('change', () => {
+      todos[i].done = cb.checked;
+      saveTodos();
+      renderTodos();
+    });
+
+    const label = document.createElement('span');
+    label.className = 'todo-label';
+    label.textContent = todo.text;
+
+    const del = document.createElement('button');
+    del.className = 'todo-del';
+    del.type = 'button';
+    del.textContent = '×';
+    del.title = 'Delete task';
+    del.setAttribute('aria-label', `Delete "${todo.text}"`);
+    del.addEventListener('click', () => {
+      todos.splice(i, 1);
+      saveTodos();
+      renderTodos();
+    });
+
+    li.append(cb, label, del);
+    todoList.appendChild(li);
+  });
+}
+
+todoAdd.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = todoInput.value.trim();
+  if (!text) return;
+  todos.push({ text, done: false });
+  saveTodos();
+  renderTodos();
+  todoInput.value = '';
+  todoInput.focus();
+});
+
 tickClock();
 setInterval(tickClock, 1000);
 todayEl.textContent = dateDisplay.format(now);
@@ -485,4 +549,5 @@ dateInput.max = todayStr;
 renderLinks();
 initCalendar();
 initWeather();
+renderTodos();
 fetchApod(todayStr);

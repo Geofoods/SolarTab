@@ -329,6 +329,8 @@ button {
   flex-direction: column;
   align-items: flex-end;
   width: fit-content;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
   gap: 16px;
 }
 
@@ -407,6 +409,131 @@ button {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+}
+
+.todo {
+  width: 224px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 10, 14, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  animation: fade-in 0.8s 0.3s ease both;
+}
+
+.todo-title {
+  margin: 0 0 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.todo-empty {
+  padding: 6px 0;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.todo-item input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.todo-item input[type='checkbox']:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.todo-item input[type='checkbox']:checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.todo-label {
+  flex: 1;
+  word-break: break-word;
+}
+
+.todo-item.done .todo-label {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.todo-del {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.todo-item:hover .todo-del {
+  opacity: 1;
+}
+
+.todo-del:hover {
+  color: #ff5252;
+}
+
+.todo-add {
+  margin-top: 10px;
+}
+
+.todo-add input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.6);
+  color: var(--text);
+  font: inherit;
+  font-family: inherit;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.todo-add input:focus {
+  border-color: var(--accent);
 }
 
 .weather {
