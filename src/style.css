@@ -719,6 +719,31 @@ button {
   text-decoration: line-through;
 }
 
+.todo-due {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.todo-due.due-today {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.todo-due.due-overdue {
+  color: #ff7a7a;
+  border-color: rgba(255, 82, 82, 0.5);
+  background: rgba(255, 82, 82, 0.12);
+}
+
 .todo-del {
   flex: none;
   padding: 0;

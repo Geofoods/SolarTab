@@ -692,6 +692,110 @@ function saveTodos() {
   localStorage.setItem('solartab:todos', JSON.stringify(todos));
 }
 
+const DAYS = {
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+  sunday: 0
+};
+
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseDue(input) {
+  const lower = input.toLowerCase();
+  const now = new Date();
+  let dueDate = null;
+  let rawLabel = '';
+  const raws = [];
+
+  let m = lower.match(/\bin\s+(\d+)\s+(day|week)s?\b/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    const d = new Date(now);
+    d.setDate(d.getDate() + (m[2] === 'week' ? n * 7 : n));
+    dueDate = d;
+    rawLabel = `In ${n} ${m[2]}${n > 1 ? 's' : ''}`;
+    raws.push(m[0]);
+  } else if (/\btoday\b/.test(lower)) {
+    dueDate = new Date(now);
+    rawLabel = 'Today';
+    raws.push('today');
+  } else if (/\btomorrow\b/.test(lower)) {
+    dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 1);
+    rawLabel = 'Tomorrow';
+    raws.push('tomorrow');
+  } else if (/\bnext week\b/.test(lower)) {
+    dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 7);
+    rawLabel = 'Next week';
+    raws.push('next week');
+  } else if (/\bthis week\b/.test(lower)) {
+    dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + (6 - now.getDay()));
+    rawLabel = 'This week';
+    raws.push('this week');
+  } else if (/\bnext month\b/.test(lower)) {
+    dueDate = new Date(now);
+    dueDate.setMonth(dueDate.getMonth() + 1);
+    rawLabel = 'Next month';
+    raws.push('next month');
+  } else {
+    for (const [day, idx] of Object.entries(DAYS)) {
+      if (new RegExp(`\\b${day}\\b`).test(lower)) {
+        let offset = (idx - now.getDay() + 7) % 7;
+        if (offset === 0) offset = 7;
+        dueDate = new Date(now);
+        dueDate.setDate(dueDate.getDate() + offset);
+        rawLabel = day.charAt(0).toUpperCase() + day.slice(1);
+        raws.push(day);
+        break;
+      }
+    }
+  }
+
+  if (!dueDate) return null;
+
+  const tm = lower.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+  let label;
+  if (tm) {
+    let h = parseInt(tm[1], 10);
+    const min = parseInt(tm[2] || '0', 10);
+    if (tm[3] === 'pm' && h < 12) h += 12;
+    if (tm[3] === 'am' && h === 12) h = 0;
+    dueDate.setHours(h, min, 0, 0);
+    if (dueDate < now) dueDate.setDate(dueDate.getDate() + 1);
+    raws.push(tm[0]);
+    label = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (rawLabel) label = `${label} · ${rawLabel}`;
+  } else {
+    dueDate.setHours(23, 59, 59, 0);
+    label = rawLabel;
+  }
+
+  return { label, ts: dueDate, raws };
+}
+
+function parseTodo(input) {
+  const due = parseDue(input);
+  let text = input;
+  if (due) {
+    due.raws.forEach((raw) => {
+      text = text.replace(new RegExp(escapeRe(raw), 'i'), ' ');
+    });
+    text = text.replace(/\s+/g, ' ').trim() || input;
+  }
+  return {
+    text,
+    due: due ? { label: due.label, ts: due.ts.toISOString() } : null
+  };
+}
+
 function renderTodos() {
   todoList.innerHTML = '';
   if (todos.length === 0) {
@@ -719,6 +823,16 @@ function renderTodos() {
     label.className = 'todo-label';
     label.textContent = todo.text;
 
+    let chip = null;
+    if (todo.due) {
+      const dueStr = toDateStr(new Date(todo.due.ts));
+      chip = document.createElement('span');
+      chip.className = 'todo-due';
+      if (dueStr === todayStr) chip.classList.add('due-today');
+      else if (dueStr < todayStr) chip.classList.add('due-overdue');
+      chip.textContent = todo.due.label;
+    }
+
     const del = document.createElement('button');
     del.className = 'todo-del';
     del.type = 'button';
@@ -731,7 +845,9 @@ function renderTodos() {
       renderTodos();
     });
 
-    li.append(cb, label, del);
+    li.append(cb, label);
+    if (chip) li.appendChild(chip);
+    li.appendChild(del);
     todoList.appendChild(li);
   });
 }
@@ -740,7 +856,8 @@ todoAdd.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = todoInput.value.trim();
   if (!text) return;
-  todos.push({ text, done: false });
+  const parsed = parseTodo(text);
+  todos.push({ text: parsed.text, done: false, due: parsed.due });
   saveTodos();
   renderTodos();
   todoInput.value = '';
