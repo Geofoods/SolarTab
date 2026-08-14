@@ -43,6 +43,13 @@ const issCoords = document.querySelector('#iss-coords');
 const moonEl = document.querySelector('#moon-phase');
 const newsList = document.querySelector('#news-list');
 const recentsList = document.querySelector('#recents-list');
+const widgetAddBtn = document.querySelector('#widget-add-btn');
+const widgetEditBtn = document.querySelector('#widget-edit-btn');
+const widgetModal = document.querySelector('#widget-modal');
+const widgetModalTitle = document.querySelector('#widget-modal-title');
+const widgetPicker = document.querySelector('#widget-picker');
+const widgetModalClose = document.querySelector('#widget-modal-close');
+const overlays = document.querySelector('.overlays');
 const modal = document.querySelector('#add-modal');
 const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
@@ -627,6 +634,200 @@ document.addEventListener('click', (e) => {
   if (!weather.contains(e.target)) closeWeatherEdit();
 });
 
+const WIDGET_DEFS = [
+  { id: 'calendar', name: 'Calendar', desc: 'Monthly calendar' },
+  { id: 'weather', name: 'Weather', desc: 'Local forecast' },
+  { id: 'todo', name: 'Todo List', desc: 'Tasks & reminders' },
+  { id: 'recents', name: 'Recent Searches', desc: 'Your last searches' },
+  { id: 'iss', name: 'ISS Tracker', desc: 'Live station position & moon phase' },
+  { id: 'news', name: 'Space News', desc: 'Latest headlines' }
+];
+
+function getWidgetsEnabled() {
+  const stored = JSON.parse(localStorage.getItem('solartab:widgets') || 'null');
+  if (Array.isArray(stored)) return stored;
+  return WIDGET_DEFS.map((w) => w.id);
+}
+
+function saveWidgets(enabled) {
+  localStorage.setItem('solartab:widgets', JSON.stringify(enabled));
+}
+
+function getWidgetPos() {
+  return JSON.parse(localStorage.getItem('solartab:widgetpos') || '{}');
+}
+
+function saveWidgetPos(id, x, y) {
+  const pos = getWidgetPos();
+  pos[id] = { x, y };
+  localStorage.setItem('solartab:widgetpos', JSON.stringify(pos));
+}
+
+function resetWidgetPos(id) {
+  const pos = getWidgetPos();
+  delete pos[id];
+  localStorage.setItem('solartab:widgetpos', JSON.stringify(pos));
+  applyWidgets();
+}
+
+function makeDraggable(el, grip) {
+  grip.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const rect = el.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const baseX = rect.left;
+    const baseY = rect.top;
+    el.classList.add('dragging');
+    el.style.position = 'fixed';
+    el.style.left = `${baseX}px`;
+    el.style.top = `${baseY}px`;
+    el.style.margin = '0';
+
+    const onMove = (ev) => {
+      el.style.left = `${baseX + (ev.clientX - startX)}px`;
+      el.style.top = `${baseY + (ev.clientY - startY)}px`;
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      el.classList.remove('dragging');
+      saveWidgetPos(el.dataset.widget, parseInt(el.style.left, 10), parseInt(el.style.top, 10));
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+}
+
+function applyWidgets() {
+  const enabled = getWidgetsEnabled();
+  const pos = getWidgetPos();
+  let overlaysVisible = false;
+  document.querySelectorAll('[data-widget]').forEach((el) => {
+    const on = enabled.includes(el.dataset.widget);
+    el.hidden = !on;
+    if (el.closest('.overlays') && on) overlaysVisible = true;
+    if (!on) return;
+
+    if (!el.querySelector('.widget-x')) {
+      const x = document.createElement('button');
+      x.className = 'widget-x';
+      x.type = 'button';
+      x.textContent = '×';
+      x.title = 'Remove widget';
+      x.setAttribute('aria-label', `Remove ${el.dataset.widget} widget`);
+      x.addEventListener('click', () => removeWidget(el.dataset.widget));
+      el.prepend(x);
+    }
+
+    if (!el.querySelector('.widget-grip')) {
+      const grip = document.createElement('button');
+      grip.className = 'widget-grip';
+      grip.type = 'button';
+      grip.title = 'Drag to move';
+      grip.setAttribute('aria-label', 'Drag widget');
+      el.prepend(grip);
+      makeDraggable(el, grip);
+    }
+
+    const saved = pos[el.dataset.widget];
+    const resetBtn = el.querySelector('.widget-reset');
+    if (saved) {
+      el.classList.add('floating');
+      el.style.position = 'fixed';
+      el.style.left = `${saved.x}px`;
+      el.style.top = `${saved.y}px`;
+      el.style.margin = '0';
+      if (!resetBtn) {
+        const r = document.createElement('button');
+        r.className = 'widget-reset';
+        r.type = 'button';
+        r.title = 'Reset position';
+        r.setAttribute('aria-label', 'Reset widget position');
+        r.textContent = '↺';
+        r.addEventListener('click', () => resetWidgetPos(el.dataset.widget));
+        el.prepend(r);
+      }
+    } else {
+      el.classList.remove('floating');
+      el.style.position = '';
+      el.style.left = '';
+      el.style.top = '';
+      el.style.margin = '';
+      if (resetBtn) resetBtn.remove();
+    }
+  });
+  overlays.hidden = !overlaysVisible;
+}
+
+function removeWidget(id) {
+  const cur = getWidgetsEnabled().filter((w) => w !== id);
+  saveWidgets(cur);
+  applyWidgets();
+}
+
+let editMode = false;
+
+function setEditMode(on) {
+  editMode = on;
+  document.body.classList.toggle('widgets-editing', on);
+  widgetEditBtn.classList.toggle('active', on);
+  widgetEditBtn.title = on ? 'Done editing' : 'Edit widgets';
+}
+
+function openWidgetModal(mode) {
+  const enabled = getWidgetsEnabled();
+  const isAdd = mode === 'add';
+  widgetModalTitle.textContent = isAdd ? 'Add widgets' : 'Edit widgets';
+  widgetPicker.innerHTML = '';
+  WIDGET_DEFS.forEach((w) => {
+    const on = enabled.includes(w.id);
+    if (isAdd && on) return;
+    if (!isAdd && !on) return;
+    const row = document.createElement('div');
+    row.className = 'widget-pick';
+    const info = document.createElement('div');
+    info.className = 'widget-pick-info';
+    const name = document.createElement('span');
+    name.className = 'widget-pick-name';
+    name.textContent = w.name;
+    const desc = document.createElement('span');
+    desc.className = 'widget-pick-desc';
+    desc.textContent = w.desc;
+    info.append(name, desc);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = isAdd ? 'Add' : 'Remove';
+    btn.className = isAdd ? 'pick-add' : 'pick-remove';
+    btn.addEventListener('click', () => {
+      const cur = getWidgetsEnabled();
+      if (isAdd) cur.push(w.id);
+      else cur.splice(cur.indexOf(w.id), 1);
+      saveWidgets(cur);
+      applyWidgets();
+      openWidgetModal(mode);
+    });
+    row.append(info, btn);
+    widgetPicker.appendChild(row);
+  });
+  if (widgetPicker.children.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'widget-pick-empty';
+    empty.textContent = isAdd ? 'All widgets are already on' : 'No widgets to remove';
+    widgetPicker.appendChild(empty);
+  }
+  widgetModal.hidden = false;
+}
+
+widgetAddBtn.addEventListener('click', () => openWidgetModal('add'));
+widgetEditBtn.addEventListener('click', () => setEditMode(!editMode));
+widgetModalClose.addEventListener('click', () => {
+  widgetModal.hidden = true;
+});
+widgetModal.addEventListener('click', (e) => {
+  if (e.target === widgetModal) widgetModal.hidden = true;
+});
+
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const CAL_MONTHS = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 let calYear;
@@ -952,6 +1153,7 @@ initCalendar();
 initWeather();
 renderTodos();
 renderRecents();
+applyWidgets();
 const moon = moonPhase(new Date());
 moonEl.textContent = `${moon.emoji} ${moon.name} · ${moon.illum}% illuminated`;
 fetchIss();
