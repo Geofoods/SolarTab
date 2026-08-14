@@ -193,6 +193,24 @@ button {
   filter: brightness(1.1);
 }
 
+.lucky {
+  margin-top: 14px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-soft);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lucky:hover {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
 .search button:active {
   transform: scale(0.97);
 }

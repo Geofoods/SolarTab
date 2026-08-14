@@ -9,6 +9,7 @@ const clockEl = document.querySelector('#clock');
 const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
 const searchEngine = document.querySelector('#search-engine');
+const luckyBtn = document.querySelector('#lucky-btn');
 const linksEl = document.querySelector('#quick-links');
 const bg = document.querySelector('#bg');
 const titleEl = document.querySelector('#apod-title');
@@ -194,16 +195,32 @@ explainToggle.addEventListener('click', () => {
   explainToggle.hidden = !open && explanationEl.scrollHeight <= explanationEl.clientHeight;
 });
 
-searchForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const q = searchInput.value.trim();
-  if (!q) return;
+function searchUrl(q, engine) {
   const urls = {
     google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
     bing: `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
     duckduckgo: `https://duckduckgo.com/?q=${encodeURIComponent(q)}`
   };
-  window.open(urls[searchEngine.value], '_blank', 'noopener');
+  return urls[engine];
+}
+
+function luckyUrl(q, engine) {
+  if (engine === 'google') return `https://www.google.com/search?q=${encodeURIComponent(q)}&btnI=1`;
+  if (engine === 'duckduckgo') return `https://duckduckgo.com/?q=!ducky+${encodeURIComponent(q)}`;
+  return searchUrl(q, engine);
+}
+
+searchForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  if (!q) return;
+  window.open(searchUrl(q, searchEngine.value), '_blank', 'noopener');
+});
+
+luckyBtn.addEventListener('click', () => {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  window.open(luckyUrl(q, searchEngine.value), '_blank', 'noopener');
 });
 
 searchEngine.value = localStorage.getItem('solartab:engine') || 'google';
