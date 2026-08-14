@@ -42,6 +42,7 @@ const issLoc = document.querySelector('#iss-loc');
 const issCoords = document.querySelector('#iss-coords');
 const moonEl = document.querySelector('#moon-phase');
 const newsList = document.querySelector('#news-list');
+const recentsList = document.querySelector('#recents-list');
 const modal = document.querySelector('#add-modal');
 const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
@@ -224,10 +225,34 @@ function addToHistory(q) {
   const history = getHistory().filter((s) => s.toLowerCase() !== q.toLowerCase());
   history.unshift(q);
   localStorage.setItem('solartab:history', JSON.stringify(history.slice(0, 10)));
+  renderRecents();
 }
 
 function clearHistory() {
   localStorage.removeItem('solartab:history');
+  renderRecents();
+}
+
+function renderRecents() {
+  const history = getHistory().slice(0, 5);
+  recentsList.innerHTML = '';
+  if (history.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'recents-empty';
+    li.textContent = 'No searches yet';
+    recentsList.appendChild(li);
+    return;
+  }
+  history.forEach((q) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = searchUrl(q, searchEngine.value);
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = q;
+    li.appendChild(a);
+    recentsList.appendChild(li);
+  });
 }
 
 searchForm.addEventListener('submit', (e) => {
@@ -809,6 +834,7 @@ renderLinks();
 initCalendar();
 initWeather();
 renderTodos();
+renderRecents();
 const moon = moonPhase(new Date());
 moonEl.textContent = `${moon.emoji} ${moon.name} · ${moon.illum}% illuminated`;
 fetchIss();

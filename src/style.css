@@ -578,6 +578,36 @@ button {
   color: var(--text-soft);
 }
 
+.recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recents-list a {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.recents-list a:hover {
+  color: var(--accent);
+}
+
+.recents-empty {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
 .news-list {
   display: flex;
   flex-direction: column;
