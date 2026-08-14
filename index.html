@@ -19,15 +19,18 @@
       <main class="stage">
         <h1 class="clock" id="clock">--:--:--</h1>
 
-        <form class="search" id="search-form" role="search">
-          <select id="search-engine" aria-label="Search engine" title="Search engine">
-            <option value="google">Google</option>
-            <option value="bing">Bing</option>
-            <option value="duckduckgo">DuckDuckGo</option>
-          </select>
-          <input id="search-input" type="search" placeholder="Search the web..." autocomplete="off" />
-          <button type="submit">Go</button>
-        </form>
+        <div class="search-wrap">
+          <form class="search" id="search-form" role="search">
+            <select id="search-engine" aria-label="Search engine" title="Search engine">
+              <option value="google">Google</option>
+              <option value="bing">Bing</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+            </select>
+            <input id="search-input" type="search" placeholder="Search the web..." autocomplete="off" />
+            <button type="submit">Go</button>
+          </form>
+          <div class="suggest" id="suggest" hidden></div>
+        </div>
 
         <button class="lucky" id="lucky-btn" type="button" title="I'm Feeling Lucky">I'm Feeling Lucky</button>
 
@@ -83,6 +86,19 @@
         <form class="todo-add" id="todo-add">
           <input id="todo-input" type="text" placeholder="Add a task..." autocomplete="off" maxlength="120" />
         </form>
+      </div>
+    </div>
+
+    <div class="overlays">
+      <div class="widget-card iss">
+        <h2 class="widget-title">ISS Location</h2>
+        <p class="iss-line" id="iss-loc">Tracking...</p>
+        <p class="iss-coords" id="iss-coords"></p>
+        <p class="moon" id="moon-phase"></p>
+      </div>
+      <div class="widget-card news">
+        <h2 class="widget-title">Space News</h2>
+        <ul class="news-list" id="news-list"></ul>
       </div>
     </div>
 

@@ -10,6 +10,8 @@ const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
 const searchEngine = document.querySelector('#search-engine');
 const luckyBtn = document.querySelector('#lucky-btn');
+const searchWrap = document.querySelector('.search-wrap');
+const suggest = document.querySelector('#suggest');
 const linksEl = document.querySelector('#quick-links');
 const bg = document.querySelector('#bg');
 const titleEl = document.querySelector('#apod-title');
@@ -36,6 +38,10 @@ const calGrid = document.querySelector('#cal-grid');
 const todoList = document.querySelector('#todo-list');
 const todoAdd = document.querySelector('#todo-add');
 const todoInput = document.querySelector('#todo-input');
+const issLoc = document.querySelector('#iss-loc');
+const issCoords = document.querySelector('#iss-coords');
+const moonEl = document.querySelector('#moon-phase');
+const newsList = document.querySelector('#news-list');
 const modal = document.querySelector('#add-modal');
 const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
@@ -210,17 +216,174 @@ function luckyUrl(q, engine) {
   return searchUrl(q, engine);
 }
 
+function getHistory() {
+  return JSON.parse(localStorage.getItem('solartab:history') || '[]');
+}
+
+function addToHistory(q) {
+  const history = getHistory().filter((s) => s.toLowerCase() !== q.toLowerCase());
+  history.unshift(q);
+  localStorage.setItem('solartab:history', JSON.stringify(history.slice(0, 10)));
+}
+
+function clearHistory() {
+  localStorage.removeItem('solartab:history');
+}
+
 searchForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const q = searchInput.value.trim();
   if (!q) return;
+  addToHistory(q);
   window.open(searchUrl(q, searchEngine.value), '_blank', 'noopener');
 });
 
 luckyBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
   if (!q) return;
+  addToHistory(q);
   window.open(luckyUrl(q, searchEngine.value), '_blank', 'noopener');
+});
+
+let suggestIndex = -1;
+let suggestTimer;
+
+async function getSuggestions(q) {
+  try {
+    const res = await fetch(`https://ac.duckduckgo.com/ac/?q=${encodeURIComponent(q)}&type=list`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) return data.slice(0, 8);
+    throw new Error('empty');
+  } catch {
+    try {
+      const res = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=8&namespace=0&format=json&origin=*`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data[1] || []).slice(0, 8);
+    } catch {
+      return [];
+    }
+  }
+}
+
+function highlightSuggestion() {
+  const selectable = [...suggest.querySelectorAll('li')].filter(
+    (li) => !li.classList.contains('suggest-label') && !li.classList.contains('suggest-clear')
+  );
+  suggestIndex = Math.max(-1, Math.min(suggestIndex, selectable.length - 1));
+  suggest.querySelectorAll('li').forEach((li) => li.classList.remove('active'));
+  if (suggestIndex >= 0) selectable[suggestIndex].classList.add('active');
+}
+
+function chooseSuggestion(s) {
+  searchInput.value = s;
+  suggest.hidden = true;
+  searchForm.requestSubmit();
+}
+
+function makeSuggestionLi(text, extraClass) {
+  const li = document.createElement('li');
+  li.textContent = text;
+  if (extraClass) li.className = extraClass;
+  li.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (extraClass === 'suggest-clear') {
+      clearHistory();
+      renderSuggestions([]);
+      return;
+    }
+    chooseSuggestion(text);
+  });
+  return li;
+}
+
+function renderSuggestions(items) {
+  suggestIndex = -1;
+  suggest.innerHTML = '';
+  const q = searchInput.value.trim().toLowerCase();
+  const history = getHistory().filter((s) => !q || s.toLowerCase().includes(q)).slice(0, 4);
+  const ul = document.createElement('ul');
+
+  if (history.length) {
+    const head = document.createElement('li');
+    head.className = 'suggest-label';
+    head.textContent = 'Previous';
+    ul.appendChild(head);
+    history.forEach((s) => ul.appendChild(makeSuggestionLi(s, 'history')));
+  }
+
+  if (items.length) {
+    if (history.length) {
+      const head = document.createElement('li');
+      head.className = 'suggest-label';
+      head.textContent = 'Suggestions';
+      ul.appendChild(head);
+    }
+    items.forEach((s) => ul.appendChild(makeSuggestionLi(s)));
+  }
+
+  if (history.length && !q) {
+    ul.appendChild(makeSuggestionLi('Clear search history', 'suggest-clear'));
+  }
+
+  if (!history.length && !items.length) {
+    suggest.hidden = true;
+    return;
+  }
+  suggest.appendChild(ul);
+  suggest.hidden = false;
+}
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(suggestTimer);
+  const q = searchInput.value.trim();
+  if (!q) {
+    renderSuggestions([]);
+    return;
+  }
+  suggestTimer = setTimeout(async () => {
+    renderSuggestions(await getSuggestions(q));
+  }, 220);
+});
+
+searchInput.addEventListener('focus', () => {
+  if (!searchInput.value.trim()) {
+    clearTimeout(suggestTimer);
+    renderSuggestions([]);
+  }
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (suggest.hidden) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const selectable = [...suggest.querySelectorAll('li')].filter(
+      (li) => !li.classList.contains('suggest-label') && !li.classList.contains('suggest-clear')
+    );
+    suggestIndex = Math.min(suggestIndex + 1, selectable.length - 1);
+    highlightSuggestion();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    suggestIndex = Math.max(suggestIndex - 1, -1);
+    highlightSuggestion();
+  } else if (e.key === 'Enter') {
+    if (suggestIndex >= 0) {
+      const active = suggest.querySelector('li.active');
+      if (active) {
+        e.preventDefault();
+        chooseSuggestion(active.textContent);
+      }
+    }
+  } else if (e.key === 'Escape') {
+    suggest.hidden = true;
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!searchWrap.contains(e.target)) suggest.hidden = true;
 });
 
 searchEngine.value = localStorage.getItem('solartab:engine') || 'google';
@@ -559,6 +722,85 @@ todoAdd.addEventListener('submit', (e) => {
   todoInput.focus();
 });
 
+async function fetchIss() {
+  try {
+    const res = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const lat = Number(data.latitude).toFixed(2);
+    const lon = Number(data.longitude).toFixed(2);
+    const vel = Math.round(data.velocity);
+    let place = 'an unknown point';
+    try {
+      const g = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${data.latitude}&longitude=${data.longitude}&localityLanguage=en`
+      );
+      if (g.ok) {
+        const gj = await g.json();
+        if (gj.isOcean && gj.ocean) {
+          place = gj.ocean;
+        } else {
+          place = gj.city || gj.locality || gj.principalSubdivision || gj.countryName || place;
+        }
+      }
+    } catch {}
+    issLoc.textContent = `Over ${place}`;
+    issCoords.textContent = `${lat}° ${Number(lat) >= 0 ? 'N' : 'S'}, ${lon}° ${Number(lon) >= 0 ? 'E' : 'W'} · ${vel} km/h`;
+  } catch {
+    issLoc.textContent = 'ISS tracking unavailable';
+    issCoords.textContent = '';
+  }
+}
+
+function moonPhase(d) {
+  const synodic = 29.53058867;
+  const epoch = Date.UTC(2000, 0, 6, 18, 14);
+  const age = ((d.getTime() - epoch) / 86400000) % synodic;
+  const illum = Math.round(((1 - Math.cos((2 * Math.PI * age) / synodic)) / 2) * 100);
+  const phases = [
+    ['New Moon', '🌑'],
+    ['Waxing Crescent', '🌒'],
+    ['First Quarter', '🌓'],
+    ['Waxing Gibbous', '🌔'],
+    ['Full Moon', '🌕'],
+    ['Waning Gibbous', '🌖'],
+    ['Last Quarter', '🌗'],
+    ['Waning Crescent', '🌘']
+  ];
+  const idx = Math.round((age / synodic) * 8) % 8;
+  return { name: phases[idx][0], emoji: phases[idx][1], illum };
+}
+
+async function fetchNews() {
+  try {
+    const res = await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=5&ordering=-published_at');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const items = data.results || [];
+    newsList.innerHTML = '';
+    if (items.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'news-empty';
+      li.textContent = 'No articles right now';
+      newsList.appendChild(li);
+      return;
+    }
+    items.forEach((a) => {
+      const li = document.createElement('li');
+      li.className = 'news-item';
+      const link = document.createElement('a');
+      link.href = a.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = a.title;
+      li.appendChild(link);
+      newsList.appendChild(li);
+    });
+  } catch {
+    newsList.innerHTML = '<li class="news-empty">News unavailable</li>';
+  }
+}
+
 tickClock();
 setInterval(tickClock, 1000);
 todayEl.textContent = dateDisplay.format(now);
@@ -567,4 +809,10 @@ renderLinks();
 initCalendar();
 initWeather();
 renderTodos();
+const moon = moonPhase(new Date());
+moonEl.textContent = `${moon.emoji} ${moon.name} · ${moon.illum}% illuminated`;
+fetchIss();
+setInterval(fetchIss, 60000);
+fetchNews();
+setInterval(fetchNews, 900000);
 fetchApod(todayStr);
