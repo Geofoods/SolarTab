@@ -189,7 +189,7 @@ button {
   border-right: 1px solid var(--line);
   background: transparent;
   color: var(--text-faint);
-  padding: 6px 12px 6px 2px;
+  padding: 6px 10px;
   margin-right: 12px;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -414,9 +414,8 @@ button {
 }
 
 .engine-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  place-items: center;
   border: none;
   border-right: 1px solid var(--line);
   outline: none;
@@ -425,7 +424,7 @@ button {
   font: inherit;
   font-family: inherit;
   font-size: 0.78rem;
-  padding: 6px 14px 6px 2px;
+  padding: 6px 10px;
   margin-right: 12px;
   cursor: pointer;
   transition: color 0.15s ease;
