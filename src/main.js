@@ -8,13 +8,11 @@ const todayEl = document.querySelector('#today');
 const clockEl = document.querySelector('#clock');
 const searchForm = document.querySelector('#search-form');
 const searchInput = document.querySelector('#search-input');
-const searchEngine = document.querySelector('#search-engine');
 const luckyBtn = document.querySelector('#lucky-btn');
 const searchWrap = document.querySelector('.search-wrap');
 const suggest = document.querySelector('#suggest');
 const engineBtn = document.querySelector('#engine-btn');
 const engineMenu = document.querySelector('#engine-menu');
-const engineLabel = document.querySelector('#engine-label');
 const engineIcon = document.querySelector('#engine-icon');
 const linksEl = document.querySelector('#quick-links');
 const bg = document.querySelector('#bg');
@@ -59,6 +57,11 @@ const addForm = document.querySelector('#add-form');
 const addName = document.querySelector('#add-name');
 const addUrl = document.querySelector('#add-url');
 const addCancel = document.querySelector('#add-cancel');
+const engineModal = document.querySelector('#engine-modal');
+const engineForm = document.querySelector('#engine-form');
+const engineName = document.querySelector('#engine-name');
+const engineUrl = document.querySelector('#engine-url');
+const engineCancel = document.querySelector('#engine-cancel');
 
 const WMO = {
   0: ['Clear sky', '☀️'],  1: ['Mostly clear', '🌤️'],
@@ -105,6 +108,7 @@ let currentDate = todayStr;
 let currentData = null;
 let favorites = JSON.parse(localStorage.getItem('solartab:favorites') || '{}');
 let links = JSON.parse(localStorage.getItem('solartab:links') || 'null') ?? DEFAULT_LINKS;
+let activeEngine = localStorage.getItem('solartab:engine') || 'google';
 
 const dateDisplay = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -226,19 +230,43 @@ bg.addEventListener('animationend', (e) => {
   if (e.animationName === 'bg-to-back') bg.classList.remove('hide-front');
 });
 
-function searchUrl(q, engine) {
-  const urls = {
-    google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
-    bing: `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
-    duckduckgo: `https://duckduckgo.com/?q=${encodeURIComponent(q)}`
-  };
-  return urls[engine];
+function getCustomEngines() {
+  return JSON.parse(localStorage.getItem('solartab:engines') || '[]');
 }
 
-function luckyUrl(q, engine) {
-  if (engine === 'google') return `https://www.google.com/search?q=${encodeURIComponent(q)}&btnI=1`;
-  if (engine === 'duckduckgo') return `https://duckduckgo.com/?q=!ducky+${encodeURIComponent(q)}`;
-  return searchUrl(q, engine);
+function saveCustomEngines(engines) {
+  localStorage.setItem('solartab:engines', JSON.stringify(engines));
+}
+
+function getEngines() {
+  return [...BUILTIN_ENGINES, ...getCustomEngines()];
+}
+
+function findEngine(id) {
+  return getEngines().find((e) => e.id === id) || BUILTIN_ENGINES[0];
+}
+
+function domainFromTemplate(template) {
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(template) ? template : `https://${template}`;
+  try {
+    return new URL(withScheme).hostname;
+  } catch {
+    return '';
+  }
+}
+
+function buildSearchUrl(template, q) {
+  return template.replace(/%s/g, encodeURIComponent(q));
+}
+
+function searchUrl(q, engineId) {
+  return buildSearchUrl(findEngine(engineId).url, q);
+}
+
+function luckyUrl(q, engineId) {
+  const eng = findEngine(engineId);
+  if (eng.lucky) return buildSearchUrl(eng.lucky, q);
+  return searchUrl(q, engineId);
 }
 
 function getHistory() {
@@ -270,7 +298,7 @@ function renderRecents() {
   history.forEach((q) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
-    a.href = searchUrl(q, searchEngine.value);
+    a.href = searchUrl(q, activeEngine);
     a.target = '_blank';
     a.rel = 'noopener';
     a.textContent = q;
@@ -284,14 +312,14 @@ searchForm.addEventListener('submit', (e) => {
   const q = searchInput.value.trim();
   if (!q) return;
   addToHistory(q);
-  window.open(searchUrl(q, searchEngine.value), '_blank', 'noopener');
+  window.open(searchUrl(q, activeEngine), '_blank', 'noopener');
 });
 
 luckyBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
   if (!q) return;
   addToHistory(q);
-  window.open(luckyUrl(q, searchEngine.value), '_blank', 'noopener');
+  window.open(luckyUrl(q, activeEngine), '_blank', 'noopener');
 });
 
 let suggestIndex = -1;
@@ -435,10 +463,10 @@ document.addEventListener('click', (e) => {
   if (!searchWrap.contains(e.target)) suggest.hidden = true;
 });
 
-const ENGINES = [
-  { id: 'google', name: 'Google', domain: 'google.com' },
-  { id: 'bing', name: 'Bing', domain: 'bing.com' },
-  { id: 'duckduckgo', name: 'DuckDuckGo', domain: 'duckduckgo.com' }
+const BUILTIN_ENGINES = [
+  { id: 'google', name: 'Google', domain: 'google.com', url: 'https://www.google.com/search?q=%s', lucky: 'https://www.google.com/search?q=%s&btnI=1' },
+  { id: 'bing', name: 'Bing', domain: 'bing.com', url: 'https://www.bing.com/search?q=%s' },
+  { id: 'duckduckgo', name: 'DuckDuckGo', domain: 'duckduckgo.com', url: 'https://duckduckgo.com/?q=%s', lucky: 'https://duckduckgo.com/?q=!ducky+%s' }
 ];
 
 function setEngineIcon(el, domain, fallback) {
@@ -460,15 +488,15 @@ function setEngineIcon(el, domain, fallback) {
 }
 
 function markEngineActive() {
-  engineMenu.querySelectorAll('li').forEach((li) => {
-    li.classList.toggle('active', li.dataset.engine === searchEngine.value);
+  engineMenu.querySelectorAll('li[data-engine]').forEach((li) => {
+    li.classList.toggle('active', li.dataset.engine === activeEngine);
   });
 }
 
 function setEngine(id, save) {
   const eng = ENGINES.find((e) => e.id === id) || ENGINES[0];
   searchEngine.value = eng.id;
-  engineLabel.textContent = eng.name;
+  engineBtn.setAttribute('aria-label', `Search engine: ${eng.name}`);
   setEngineIcon(engineIcon, eng.domain, eng.name.charAt(0).toUpperCase());
   markEngineActive();
   if (save) localStorage.setItem('solartab:engine', eng.id);
@@ -478,7 +506,7 @@ function setEngine(id, save) {
 function buildEngineMenu() {
   engineMenu.innerHTML = '';
   const ul = document.createElement('ul');
-  ENGINES.forEach((eng) => {
+  getEngines().forEach((eng) => {
     const li = document.createElement('li');
     li.dataset.engine = eng.id;
     li.setAttribute('role', 'option');
@@ -492,8 +520,42 @@ function buildEngineMenu() {
       setEngine(eng.id, true);
       closeEngineMenu();
     });
+    if (eng.custom) {
+      const del = document.createElement('button');
+      del.className = 'engine-remove';
+      del.type = 'button';
+      del.title = `Remove ${eng.name}`;
+      del.setAttribute('aria-label', `Remove ${eng.name}`);
+      del.textContent = '×';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeCustomEngine(eng.id);
+        if (activeEngine === eng.id) setEngine(getEngines()[0].id, true);
+        buildEngineMenu();
+        markEngineActive();
+      });
+      li.appendChild(del);
+    }
     ul.appendChild(li);
   });
+
+  const divider = document.createElement('li');
+  divider.className = 'engine-divider';
+  divider.setAttribute('role', 'separator');
+  ul.appendChild(divider);
+
+  const add = document.createElement('li');
+  add.className = 'engine-add';
+  add.setAttribute('role', 'option');
+  const addIcon = document.createElement('span');
+  addIcon.className = 'engine-icon';
+  addIcon.textContent = '+';
+  const addName = document.createElement('span');
+  addName.textContent = 'Add custom engine';
+  add.append(addIcon, addName);
+  add.addEventListener('click', () => openEngineModal());
+  ul.appendChild(add);
+
   engineMenu.appendChild(ul);
 }
 
@@ -521,11 +583,65 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeEngineMenu();
+  if (e.key === 'Escape') {
+    closeEngineMenu();
+    engineModal.hidden = true;
+  }
+});
+
+function removeCustomEngine(id) {
+  saveCustomEngines(getCustomEngines().filter((e) => e.id !== id));
+}
+
+function openEngineModal() {
+  closeEngineMenu();
+  engineName.value = '';
+  engineUrl.value = '';
+  engineUrl.setCustomValidity('');
+  engineModal.hidden = false;
+  engineName.focus();
+}
+
+function closeEngineModal() {
+  engineModal.hidden = true;
+}
+
+engineUrl.addEventListener('input', () => {
+  engineUrl.setCustomValidity('');
+});
+
+engineForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = engineName.value.trim();
+  const url = engineUrl.value.trim();
+  if (!name || !url) return;
+  if (!url.includes('%s')) {
+    engineUrl.setCustomValidity('The URL must contain %s where the search query is inserted.');
+    engineUrl.reportValidity();
+    return;
+  }
+  const custom = getCustomEngines();
+  const engine = {
+    id: `custom-${Date.now()}`,
+    name,
+    url,
+    domain: domainFromTemplate(url),
+    custom: true
+  };
+  custom.push(engine);
+  saveCustomEngines(custom);
+  closeEngineModal();
+  setEngine(engine.id, true);
+});
+
+engineCancel.addEventListener('click', closeEngineModal);
+
+engineModal.addEventListener('click', (e) => {
+  if (e.target === engineModal) closeEngineModal();
 });
 
 buildEngineMenu();
-setEngine(localStorage.getItem('solartab:engine') || 'google', false);
+setEngine(activeEngine, false);
 
 function faviconFor(url) {
   try {
@@ -757,56 +873,72 @@ function saveWidgets(enabled) {
   localStorage.setItem('solartab:widgets', JSON.stringify(enabled));
 }
 
-function getWidgetPos() {
-  return JSON.parse(localStorage.getItem('solartab:widgetpos') || '{}');
-}
-
-function saveWidgetPos(id, x, y) {
-  const pos = getWidgetPos();
-  pos[id] = { x, y };
-  localStorage.setItem('solartab:widgetpos', JSON.stringify(pos));
-}
-
-function resetWidgetPos(id) {
-  const pos = getWidgetPos();
-  delete pos[id];
-  localStorage.setItem('solartab:widgetpos', JSON.stringify(pos));
+function moveWidgetBefore(id, beforeId) {
+  const enabled = getWidgetsEnabled();
+  const from = enabled.indexOf(id);
+  const to = enabled.indexOf(beforeId);
+  if (from === -1 || to === -1 || from === to) return;
+  enabled.splice(from, 1);
+  enabled.splice(enabled.indexOf(beforeId), 0, id);
+  saveWidgets(enabled);
   applyWidgets();
 }
 
-function makeDraggable(el, grip) {
-  grip.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    const rect = el.getBoundingClientRect();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const baseX = rect.left;
-    const baseY = rect.top;
+function makeReorderable(el, grip) {
+  let overDepth = 0;
+  grip.draggable = true;
+  grip.addEventListener('dragstart', (e) => {
     el.classList.add('dragging');
-    el.style.position = 'fixed';
-    el.style.left = `${baseX}px`;
-    el.style.top = `${baseY}px`;
-    el.style.margin = '0';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', el.dataset.widget);
+  });
+  grip.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    document.querySelectorAll('[data-widget].drag-over').forEach((w) => w.classList.remove('drag-over'));
+  });
 
-    const onMove = (ev) => {
-      el.style.left = `${baseX + (ev.clientX - startX)}px`;
-      el.style.top = `${baseY + (ev.clientY - startY)}px`;
-    };
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      el.classList.remove('dragging');
-      saveWidgetPos(el.dataset.widget, parseInt(el.style.left, 10), parseInt(el.style.top, 10));
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+  el.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    overDepth++;
+    el.classList.add('drag-over');
+  });
+  el.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+  el.addEventListener('dragleave', () => {
+    overDepth--;
+    if (overDepth <= 0) {
+      overDepth = 0;
+      el.classList.remove('drag-over');
+    }
+  });
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    overDepth = 0;
+    el.classList.remove('drag-over');
+    const id = e.dataTransfer.getData('text/plain');
+    if (!id || id === el.dataset.widget) return;
+    const fromEl = document.querySelector(`[data-widget="${id}"]`);
+    if (fromEl && fromEl.parentElement !== el.parentElement) return;
+    moveWidgetBefore(id, el.dataset.widget);
   });
 }
 
 function applyWidgets() {
   const enabled = getWidgetsEnabled();
-  const pos = getWidgetPos();
   let overlaysVisible = false;
+  [document.querySelector('.widgets'), document.querySelector('.overlays')].forEach((container) => {
+    if (!container) return;
+    const anchor = container.querySelector(':scope > .widgets-actions');
+    [...container.querySelectorAll(':scope > [data-widget]')]
+      .sort((a, b) => enabled.indexOf(a.dataset.widget) - enabled.indexOf(b.dataset.widget))
+      .forEach((el) => {
+        if (anchor) container.insertBefore(el, anchor);
+        else container.appendChild(el);
+      });
+  });
+
   document.querySelectorAll('[data-widget]').forEach((el) => {
     const on = enabled.includes(el.dataset.widget);
     el.hidden = !on;
@@ -828,37 +960,10 @@ function applyWidgets() {
       const grip = document.createElement('button');
       grip.className = 'widget-grip';
       grip.type = 'button';
-      grip.title = 'Drag to move';
-      grip.setAttribute('aria-label', 'Drag widget');
+      grip.title = 'Drag to reorder';
+      grip.setAttribute('aria-label', 'Drag to reorder');
       el.prepend(grip);
-      makeDraggable(el, grip);
-    }
-
-    const saved = pos[el.dataset.widget];
-    const resetBtn = el.querySelector('.widget-reset');
-    if (saved) {
-      el.classList.add('floating');
-      el.style.position = 'fixed';
-      el.style.left = `${saved.x}px`;
-      el.style.top = `${saved.y}px`;
-      el.style.margin = '0';
-      if (!resetBtn) {
-        const r = document.createElement('button');
-        r.className = 'widget-reset';
-        r.type = 'button';
-        r.title = 'Reset position';
-        r.setAttribute('aria-label', 'Reset widget position');
-        r.textContent = '↺';
-        r.addEventListener('click', () => resetWidgetPos(el.dataset.widget));
-        el.prepend(r);
-      }
-    } else {
-      el.classList.remove('floating');
-      el.style.position = '';
-      el.style.left = '';
-      el.style.top = '';
-      el.style.margin = '';
-      if (resetBtn) resetBtn.remove();
+      makeReorderable(el, grip);
     }
   });
   overlays.hidden = !overlaysVisible;

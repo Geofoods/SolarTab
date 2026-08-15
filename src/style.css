@@ -298,7 +298,6 @@ button {
 .engine-menu {
   position: absolute;
   top: calc(100% + 8px);
-  z-index: 20;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
   background: var(--surface-solid);
@@ -310,10 +309,13 @@ button {
 .suggest {
   left: 0;
   right: 0;
+  z-index: 20;
 }
 
 .engine-menu {
-  left: 0;
+  left: 18px;
+  top: calc(100% + 3px);
+  z-index: 30;
   min-width: 190px;
   width: max-content;
 }
@@ -407,6 +409,57 @@ button {
   content: '✓';
   margin-left: auto;
   font-size: 0.75rem;
+}
+
+.engine-menu li.engine-divider {
+  height: 1px;
+  margin: 4px 6px;
+  padding: 0;
+  background: var(--line);
+  border-radius: 0;
+  cursor: default;
+  pointer-events: none;
+}
+
+.engine-menu li.engine-divider::before,
+.engine-menu li.engine-divider::after {
+  display: none;
+}
+
+.engine-menu li.engine-add {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.engine-menu li.engine-add:hover {
+  color: var(--text);
+}
+
+.engine-remove {
+  flex: none;
+  margin-left: auto;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.engine-menu li:hover .engine-remove {
+  opacity: 1;
+}
+
+.engine-remove:hover {
+  color: #ff5252;
+}
+
+.engine-hint {
+  margin: -4px 0 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
 }
 
 .search button:active {
@@ -929,32 +982,9 @@ body.widgets-editing .widget-grip {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
-.widget-reset {
-  position: absolute;
-  top: 8px;
-  right: 34px;
-  z-index: 5;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text-soft);
-  font-size: 0.9rem;
-  line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-body.widgets-editing .widget-reset {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.widget-reset:hover {
-  color: var(--text);
+[data-widget].drag-over {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(90, 139, 255, 0.35);
 }
 
 .widget-x {

@@ -21,17 +21,10 @@
 
         <div class="search-wrap">
           <form class="search" id="search-form" role="search">
-            <select id="search-engine" aria-label="Search engine" title="Search engine" hidden>
-              <option value="google">Google</option>
-              <option value="bing">Bing</option>
-              <option value="duckduckgo">DuckDuckGo</option>
-            </select>
             <div class="engine">
               <button class="engine-btn" id="engine-btn" type="button" title="Search engine" aria-label="Search engine" aria-haspopup="listbox" aria-expanded="false">
                 <span class="engine-icon" id="engine-icon"></span>
-                <span class="engine-label" id="engine-label">Google</span>
               </button>
-              <div class="engine-menu" id="engine-menu" role="listbox" hidden></div>
             </div>
             <input id="search-input" type="search" placeholder="Search the web..." autocomplete="off" />
             <button type="submit" aria-label="Search">
@@ -41,6 +34,7 @@
               </svg>
             </button>
           </form>
+          <div class="engine-menu" id="engine-menu" role="listbox" hidden></div>
           <div class="suggest" id="suggest" hidden></div>
         </div>
 
@@ -140,6 +134,19 @@
         <input id="add-url" type="url" placeholder="https://example.com" required />
         <div class="modal-actions">
           <button type="button" id="add-cancel">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="engine-modal" hidden>
+      <form class="modal-box" id="engine-form">
+        <h2>Add a custom engine</h2>
+        <input id="engine-name" type="text" placeholder="Name (e.g. Wikipedia)" autocomplete="off" required />
+        <input id="engine-url" type="text" placeholder="https://en.wikipedia.org/w/index.php?search=%s" autocomplete="off" required />
+        <p class="engine-hint">Use %s as the placeholder for your search query.</p>
+        <div class="modal-actions">
+          <button type="button" id="engine-cancel">Cancel</button>
           <button type="submit">Save</button>
         </div>
       </form>
