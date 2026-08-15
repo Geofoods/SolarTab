@@ -62,6 +62,9 @@ const engineForm = document.querySelector('#engine-form');
 const engineName = document.querySelector('#engine-name');
 const engineUrl = document.querySelector('#engine-url');
 const engineCancel = document.querySelector('#engine-cancel');
+const clockEdit = document.querySelector('#clock-edit');
+const clockFormatEl = document.querySelector('#clock-format');
+const clockTzEl = document.querySelector('#clock-tz');
 
 const WMO = {
   0: ['Clear sky', '☀️'],  1: ['Mostly clear', '🌤️'],
@@ -110,12 +113,20 @@ let favorites = JSON.parse(localStorage.getItem('solartab:favorites') || '{}');
 let links = JSON.parse(localStorage.getItem('solartab:links') || 'null') ?? DEFAULT_LINKS;
 let activeEngine = localStorage.getItem('solartab:engine') || 'google';
 
-const dateDisplay = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-});
+let clockFormat = localStorage.getItem('solartab:clockformat') || '24';
+let clockTimezone = localStorage.getItem('solartab:timezone') || '';
+
+const FALLBACK_TIMEZONES = [
+  'UTC', 'Pacific/Midway', 'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
+  'America/Phoenix', 'America/Denver', 'America/Chicago', 'America/New_York',
+  'America/Caracas', 'America/Sao_Paulo', 'America/Argentina/Buenos_Aires',
+  'Atlantic/South_Georgia', 'Atlantic/Azores', 'Europe/London', 'Europe/Lisbon',
+  'Europe/Berlin', 'Europe/Paris', 'Europe/Madrid', 'Europe/Rome', 'Europe/Athens',
+  'Europe/Moscow', 'Europe/Istanbul', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+  'Asia/Dhaka', 'Asia/Bangkok', 'Asia/Jakarta', 'Asia/Hong_Kong', 'Asia/Shanghai',
+  'Asia/Taipei', 'Asia/Tokyo', 'Asia/Seoul', 'Australia/Adelaide', 'Australia/Sydney',
+  'Australia/Brisbane', 'Pacific/Auckland', 'Pacific/Fiji'
+];
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -127,8 +138,102 @@ function toDateStr(d) {
 
 function tickClock() {
   const d = new Date();
-  clockEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: clockFormat === '12' ? 'h12' : 'h23',
+    ...(clockTimezone ? { timeZone: clockTimezone } : {})
+  });
+  clockEl.textContent = fmt.format(d);
 }
+
+function renderDate() {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    ...(clockTimezone ? { timeZone: clockTimezone } : {})
+  });
+  todayEl.textContent = fmt.format(new Date());
+}
+
+function getTimeZones() {
+  if (typeof Intl.supportedValuesOf === 'function') {
+    try {
+      const zones = Intl.supportedValuesOf('timeZone');
+      if (zones && zones.length) return zones;
+    } catch {}
+  }
+  return FALLBACK_TIMEZONES;
+}
+
+function buildClockTzOptions() {
+  clockTzEl.innerHTML = '';
+  const auto = document.createElement('option');
+  auto.value = '';
+  auto.textContent = 'Automatic (local time)';
+  clockTzEl.appendChild(auto);
+
+  const groups = {};
+  getTimeZones().forEach((z) => {
+    const idx = z.indexOf('/');
+    if (idx === -1) {
+      (groups['Other'] = groups['Other'] || []).push(z);
+      return;
+    }
+    const region = z.slice(0, idx);
+    (groups[region] = groups[region] || []).push(z);
+  });
+
+  Object.keys(groups)
+    .sort((a, b) => (a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b)))
+    .forEach((region) => {
+      const og = document.createElement('optgroup');
+      og.label = region;
+      groups[region].forEach((z) => {
+        const opt = document.createElement('option');
+        opt.value = z;
+        opt.textContent = z.replace(/_/g, ' ');
+        og.appendChild(opt);
+      });
+      clockTzEl.appendChild(og);
+    });
+}
+
+function openClockEdit() {
+  clockFormatEl.value = clockFormat;
+  clockTzEl.value = clockTimezone;
+  clockEdit.hidden = false;
+}
+
+function closeClockEdit() {
+  clockEdit.hidden = true;
+}
+
+clockEl.addEventListener('click', () => {
+  if (clockEdit.hidden) openClockEdit();
+  else closeClockEdit();
+});
+
+clockFormatEl.addEventListener('change', () => {
+  clockFormat = clockFormatEl.value;
+  localStorage.setItem('solartab:clockformat', clockFormat);
+  tickClock();
+});
+
+clockTzEl.addEventListener('change', () => {
+  clockTimezone = clockTzEl.value;
+  localStorage.setItem('solartab:timezone', clockTimezone);
+  tickClock();
+  renderDate();
+});
+
+document.addEventListener('click', (e) => {
+  if (clockEdit.hidden) return;
+  if (!clockEdit.contains(e.target) && !clockEl.contains(e.target)) closeClockEdit();
+});
 
 async function fetchApod(date) {
   currentDate = date;
@@ -586,6 +691,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeEngineMenu();
     engineModal.hidden = true;
+    closeClockEdit();
   }
 });
 
@@ -1355,7 +1461,7 @@ async function fetchNews() {
 
 tickClock();
 setInterval(tickClock, 1000);
-todayEl.textContent = dateDisplay.format(now);
+renderDate();
 dateInput.max = todayStr;
 renderLinks();
 initCalendar();
@@ -1363,6 +1469,7 @@ initWeather();
 renderTodos();
 renderRecents();
 applyWidgets();
+buildClockTzOptions();
 const moon = moonPhase(new Date());
 moonEl.textContent = `${moon.emoji} ${moon.name} · ${moon.illum}% illuminated`;
 fetchIss();

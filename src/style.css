@@ -154,6 +154,50 @@ button {
   letter-spacing: 0.04em;
   color: var(--text);
   text-shadow: 0 2px 32px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.clock:hover {
+  opacity: 0.92;
+}
+
+.clock-edit {
+  display: flex;
+  gap: 12px;
+  margin: -18px 0 30px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  animation: fade-in 0.15s ease;
+}
+
+.clock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--text-soft);
+}
+
+.clock-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.6);
+  color: var(--text);
+  font: inherit;
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+  color-scheme: dark;
+}
+
+.clock-field select:focus {
+  border-color: var(--accent);
 }
 
 .search-wrap {

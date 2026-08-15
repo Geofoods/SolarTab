@@ -19,6 +19,20 @@
       <main class="stage">
         <h1 class="clock" id="clock">--:--:--</h1>
 
+        <div class="clock-edit" id="clock-edit" hidden>
+          <label class="clock-field">
+            <span>Format</span>
+            <select id="clock-format">
+              <option value="12">12-hour (AM / PM)</option>
+              <option value="24">24-hour</option>
+            </select>
+          </label>
+          <label class="clock-field">
+            <span>Timezone</span>
+            <select id="clock-tz"></select>
+          </label>
+        </div>
+
         <div class="search-wrap">
           <form class="search" id="search-form" role="search">
             <div class="engine">
