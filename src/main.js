@@ -65,6 +65,8 @@ const engineCancel = document.querySelector('#engine-cancel');
 const clockEdit = document.querySelector('#clock-edit');
 const clockFormatEl = document.querySelector('#clock-format');
 const clockTzEl = document.querySelector('#clock-tz');
+const settingsBtn = document.querySelector('#settings-btn');
+const settingsMenu = document.querySelector('#settings-menu');
 
 const WMO = {
   0: ['Clear sky', '☀️'],  1: ['Mostly clear', '🌤️'],
@@ -115,6 +117,163 @@ let activeEngine = localStorage.getItem('solartab:engine') || 'google';
 
 let clockFormat = localStorage.getItem('solartab:clockformat') || '24';
 let clockTimezone = localStorage.getItem('solartab:timezone') || '';
+let theme = localStorage.getItem('solartab:theme') || 'dark';
+let accent = localStorage.getItem('solartab:accent') || '#5a8bff';
+let sunTimes = null;
+
+const ACCENTS = ['#5a8bff', '#a78bfa', '#f472b6', '#34d399', '#2dd4bf', '#fb923c', '#f87171', '#fbbf24'];
+
+function isDaytime() {
+  if (!sunTimes) {
+    const h = new Date().getHours();
+    return h >= 6 && h < 18;
+  }
+  const now = new Date();
+  return now >= sunTimes.sunrise && now < sunTimes.sunset;
+}
+
+function effectiveTheme() {
+  return theme === 'auto' ? (isDaytime() ? 'light' : 'dark') : theme;
+}
+
+async function fetchSunTimes(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&timezone=auto&forecast_days=1`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const s = data.daily;
+    if (s && s.sunrise && s.sunset) {
+      sunTimes = { sunrise: new Date(s.sunrise[0]), sunset: new Date(s.sunset[0]) };
+      if (theme === 'auto') applyTheme();
+    }
+  } catch {}
+}
+
+function initAutoTheme() {
+  const saved = JSON.parse(localStorage.getItem('solartab:weather') || 'null');
+  if (saved && typeof saved.lat === 'number' && typeof saved.lon === 'number') {
+    fetchSunTimes(saved.lat, saved.lon);
+  }
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = effectiveTheme();
+}
+
+function applyAccent() {
+  const r = parseInt(accent.slice(1, 3), 16);
+  const g = parseInt(accent.slice(3, 5), 16);
+  const b = parseInt(accent.slice(5, 7), 16);
+  const root = document.documentElement;
+  root.style.setProperty('--accent', accent);
+  root.style.setProperty('--accent-dim', `rgba(${r}, ${g}, ${b}, 0.18)`);
+  accentCustom.value = accent;
+  [...accentSwatches.children].forEach((s) => {
+    s.classList.toggle('active', s.dataset.accent === accent);
+  });
+}
+
+function buildAccentSwatches() {
+  accentSwatches.innerHTML = '';
+  ACCENTS.forEach((c) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'swatch';
+    b.dataset.accent = c;
+    b.style.background = c;
+    b.title = c;
+    b.setAttribute('aria-label', `Accent ${c}`);
+    b.addEventListener('click', () => {
+      accent = c;
+      localStorage.setItem('solartab:accent', accent);
+      applyAccent();
+    });
+    accentSwatches.appendChild(b);
+  });
+}
+
+function renderThemeOptions() {
+  themeOptions.querySelectorAll('[data-theme-opt]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.themeOpt === theme);
+  });
+}
+
+function openSettings() {
+  settingsBtn.setAttribute('aria-expanded', 'true');
+  settingsMenu.hidden = false;
+}
+
+function closeSettings() {
+  settingsBtn.setAttribute('aria-expanded', 'false');
+  settingsMenu.hidden = true;
+}
+
+function buildSettingsMenu() {
+  settingsMenu.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-title">Theme</div>
+      <div class="settings-options" id="theme-options">
+        <button type="button" data-theme-opt="light">Light</button>
+        <button type="button" data-theme-opt="dark">Dark</button>
+        <button type="button" data-theme-opt="auto">Auto</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">Accent color</div>
+      <div class="settings-swatches" id="accent-swatches"></div>
+      <label class="settings-custom">
+        <span>Custom</span>
+        <input type="color" id="accent-custom" value="#5a8bff" />
+      </label>
+    </div>
+  `;
+}
+
+settingsBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeEngineMenu();
+  if (settingsMenu.hidden) openSettings();
+  else closeSettings();
+});
+
+buildSettingsMenu();
+
+const themeOptions = settingsMenu.querySelector('#theme-options');
+const accentSwatches = settingsMenu.querySelector('#accent-swatches');
+const accentCustom = settingsMenu.querySelector('#accent-custom');
+
+buildAccentSwatches();
+renderThemeOptions();
+
+themeOptions.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-theme-opt]');
+  if (!btn) return;
+  theme = btn.dataset.themeOpt;
+  localStorage.setItem('solartab:theme', theme);
+  renderThemeOptions();
+  applyTheme();
+});
+
+accentCustom.addEventListener('input', () => {
+  accent = accentCustom.value;
+  localStorage.setItem('solartab:accent', accent);
+  applyAccent();
+});
+
+document.addEventListener('click', (e) => {
+  if (settingsMenu.hidden) return;
+  if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) closeSettings();
+});
+
+applyTheme();
+applyAccent();
+initAutoTheme();
+setInterval(() => {
+  if (theme === 'auto') applyTheme();
+}, 60000);
 
 const FALLBACK_TIMEZONES = [
   'UTC', 'Pacific/Midway', 'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
@@ -142,7 +301,7 @@ function tickClock() {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hourCycle: clockFormat === '12' ? 'h12' : 'h23',
+    hour12: clockFormat === '12',
     ...(clockTimezone ? { timeZone: clockTimezone } : {})
   });
   clockEl.textContent = fmt.format(d);
@@ -679,6 +838,7 @@ function closeEngineMenu() {
 engineBtn.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
+  closeSettings();
   if (engineMenu.hidden) openEngineMenu();
   else closeEngineMenu();
 });
@@ -692,6 +852,7 @@ document.addEventListener('keydown', (e) => {
     closeEngineMenu();
     engineModal.hidden = true;
     closeClockEdit();
+    closeSettings();
   }
 });
 
