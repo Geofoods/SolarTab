@@ -465,15 +465,15 @@ document.addEventListener('click', (e) => {
 
 const BUILTIN_ENGINES = [
   { id: 'google', name: 'Google', domain: 'google.com', url: 'https://www.google.com/search?q=%s', lucky: 'https://www.google.com/search?q=%s&btnI=1' },
-  { id: 'bing', name: 'Bing', domain: 'bing.com', url: 'https://www.bing.com/search?q=%s' },
+  { id: 'bing', name: 'Bing', domain: 'bing.com', icon: 'https://www.bing.com/favicon.ico', url: 'https://www.bing.com/search?q=%s' },
   { id: 'duckduckgo', name: 'DuckDuckGo', domain: 'duckduckgo.com', url: 'https://duckduckgo.com/?q=%s', lucky: 'https://duckduckgo.com/?q=!ducky+%s' }
 ];
 
-function setEngineIcon(el, domain, fallback) {
-  const url = faviconFor(`https://${domain}`);
+function setEngineIcon(el, eng) {
+  const url = eng.icon || faviconFor(`https://${eng.domain}`);
   el.innerHTML = '';
   if (!url) {
-    el.textContent = fallback;
+    el.textContent = eng.name.charAt(0).toUpperCase();
     return;
   }
   const img = document.createElement('img');
@@ -482,7 +482,7 @@ function setEngineIcon(el, domain, fallback) {
   img.src = url;
   img.addEventListener('error', () => {
     img.remove();
-    el.textContent = fallback;
+    el.textContent = eng.name.charAt(0).toUpperCase();
   });
   el.appendChild(img);
 }
@@ -494,10 +494,10 @@ function markEngineActive() {
 }
 
 function setEngine(id, save) {
-  const eng = ENGINES.find((e) => e.id === id) || ENGINES[0];
-  searchEngine.value = eng.id;
+  const eng = findEngine(id);
+  activeEngine = eng.id;
   engineBtn.setAttribute('aria-label', `Search engine: ${eng.name}`);
-  setEngineIcon(engineIcon, eng.domain, eng.name.charAt(0).toUpperCase());
+  setEngineIcon(engineIcon, eng);
   markEngineActive();
   if (save) localStorage.setItem('solartab:engine', eng.id);
   renderRecents();
@@ -512,7 +512,7 @@ function buildEngineMenu() {
     li.setAttribute('role', 'option');
     const icon = document.createElement('span');
     icon.className = 'engine-icon';
-    setEngineIcon(icon, eng.domain, eng.name.charAt(0).toUpperCase());
+    setEngineIcon(icon, eng);
     const name = document.createElement('span');
     name.textContent = eng.name;
     li.append(icon, name);
