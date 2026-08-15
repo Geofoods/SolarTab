@@ -12,6 +12,10 @@ const searchEngine = document.querySelector('#search-engine');
 const luckyBtn = document.querySelector('#lucky-btn');
 const searchWrap = document.querySelector('.search-wrap');
 const suggest = document.querySelector('#suggest');
+const engineBtn = document.querySelector('#engine-btn');
+const engineMenu = document.querySelector('#engine-menu');
+const engineLabel = document.querySelector('#engine-label');
+const engineIcon = document.querySelector('#engine-icon');
 const linksEl = document.querySelector('#quick-links');
 const bg = document.querySelector('#bg');
 const titleEl = document.querySelector('#apod-title');
@@ -431,10 +435,97 @@ document.addEventListener('click', (e) => {
   if (!searchWrap.contains(e.target)) suggest.hidden = true;
 });
 
-searchEngine.value = localStorage.getItem('solartab:engine') || 'google';
-searchEngine.addEventListener('change', () => {
-  localStorage.setItem('solartab:engine', searchEngine.value);
+const ENGINES = [
+  { id: 'google', name: 'Google', domain: 'google.com' },
+  { id: 'bing', name: 'Bing', domain: 'bing.com' },
+  { id: 'duckduckgo', name: 'DuckDuckGo', domain: 'duckduckgo.com' }
+];
+
+function setEngineIcon(el, domain, fallback) {
+  const url = faviconFor(`https://${domain}`);
+  el.innerHTML = '';
+  if (!url) {
+    el.textContent = fallback;
+    return;
+  }
+  const img = document.createElement('img');
+  img.alt = '';
+  img.loading = 'lazy';
+  img.src = url;
+  img.addEventListener('error', () => {
+    img.remove();
+    el.textContent = fallback;
+  });
+  el.appendChild(img);
+}
+
+function markEngineActive() {
+  engineMenu.querySelectorAll('li').forEach((li) => {
+    li.classList.toggle('active', li.dataset.engine === searchEngine.value);
+  });
+}
+
+function setEngine(id, save) {
+  const eng = ENGINES.find((e) => e.id === id) || ENGINES[0];
+  searchEngine.value = eng.id;
+  engineLabel.textContent = eng.name;
+  setEngineIcon(engineIcon, eng.domain, eng.name.charAt(0).toUpperCase());
+  markEngineActive();
+  if (save) localStorage.setItem('solartab:engine', eng.id);
+  renderRecents();
+}
+
+function buildEngineMenu() {
+  engineMenu.innerHTML = '';
+  const ul = document.createElement('ul');
+  ENGINES.forEach((eng) => {
+    const li = document.createElement('li');
+    li.dataset.engine = eng.id;
+    li.setAttribute('role', 'option');
+    const icon = document.createElement('span');
+    icon.className = 'engine-icon';
+    setEngineIcon(icon, eng.domain, eng.name.charAt(0).toUpperCase());
+    const name = document.createElement('span');
+    name.textContent = eng.name;
+    li.append(icon, name);
+    li.addEventListener('click', () => {
+      setEngine(eng.id, true);
+      closeEngineMenu();
+    });
+    ul.appendChild(li);
+  });
+  engineMenu.appendChild(ul);
+}
+
+function openEngineMenu() {
+  buildEngineMenu();
+  markEngineActive();
+  engineMenu.hidden = false;
+  engineBtn.setAttribute('aria-expanded', 'true');
+}
+
+function closeEngineMenu() {
+  engineMenu.hidden = true;
+  engineBtn.setAttribute('aria-expanded', 'false');
+}
+
+engineBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (engineMenu.hidden) openEngineMenu();
+  else closeEngineMenu();
 });
+
+document.addEventListener('click', (e) => {
+  if (!engineMenu.contains(e.target) && !engineBtn.contains(e.target)) closeEngineMenu();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeEngineMenu();
+});
+
+buildEngineMenu();
+setEngine(localStorage.getItem('solartab:engine') || 'google', false);
 
 function faviconFor(url) {
   try {

@@ -21,11 +21,18 @@
 
         <div class="search-wrap">
           <form class="search" id="search-form" role="search">
-            <select id="search-engine" aria-label="Search engine" title="Search engine">
+            <select id="search-engine" aria-label="Search engine" title="Search engine" hidden>
               <option value="google">Google</option>
               <option value="bing">Bing</option>
               <option value="duckduckgo">DuckDuckGo</option>
             </select>
+            <div class="engine">
+              <button class="engine-btn" id="engine-btn" type="button" title="Search engine" aria-label="Search engine" aria-haspopup="listbox" aria-expanded="false">
+                <span class="engine-icon" id="engine-icon"></span>
+                <span class="engine-label" id="engine-label">Google</span>
+              </button>
+              <div class="engine-menu" id="engine-menu" role="listbox" hidden></div>
+            </div>
             <input id="search-input" type="search" placeholder="Search the web..." autocomplete="off" />
             <button type="submit" aria-label="Search">
               <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

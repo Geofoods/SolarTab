@@ -180,7 +180,16 @@ button {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(90, 139, 255, 0.14);
 }
 
-.search select {
+.engine {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.engine-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   border-right: 1px solid var(--line);
   outline: none;
@@ -191,13 +200,42 @@ button {
   font-size: 0.78rem;
   padding: 6px 14px 6px 2px;
   margin-right: 12px;
-  color-scheme: dark;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
-.search select option {
-  background: var(--surface-solid);
-  color: var(--text);
+.engine-btn:hover,
+.engine-btn[aria-expanded='true'] {
+  color: var(--text-soft);
+}
+
+.engine-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.engine-icon img {
+  width: 16px;
+  height: 16px;
+}
+
+.engine-btn::after {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+
+.engine-btn[aria-expanded='true']::after {
+  transform: rotate(180deg);
 }
 
 .search input {
@@ -256,11 +294,10 @@ button {
   color: var(--text);
 }
 
-.suggest {
+.suggest,
+.engine-menu {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
-  right: 0;
   z-index: 20;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
@@ -270,7 +307,19 @@ button {
   animation: fade-in 0.15s ease;
 }
 
-.suggest ul {
+.suggest {
+  left: 0;
+  right: 0;
+}
+
+.engine-menu {
+  left: 0;
+  min-width: 190px;
+  width: max-content;
+}
+
+.suggest ul,
+.engine-menu ul {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -279,7 +328,8 @@ button {
   list-style: none;
 }
 
-.suggest li {
+.suggest li,
+.engine-menu li {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -337,7 +387,9 @@ button {
 }
 
 .suggest li:hover,
-.suggest li.active {
+.suggest li.active,
+.engine-menu li:hover,
+.engine-menu li.active {
   background: var(--accent-dim);
   color: var(--text);
 }
@@ -345,6 +397,16 @@ button {
 .suggest li:hover::before,
 .suggest li.active::before {
   background-color: var(--text);
+}
+
+.engine-menu li::before {
+  display: none;
+}
+
+.engine-menu li.active::after {
+  content: '✓';
+  margin-left: auto;
+  font-size: 0.75rem;
 }
 
 .search button:active {
@@ -475,17 +537,22 @@ button {
 
 .widgets {
   position: fixed;
+  top: 0;
   right: clamp(24px, 10vw, 140px);
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   width: fit-content;
-  max-height: calc(100vh - 56px);
+  max-height: 100vh;
   overflow-y: auto;
   gap: 16px;
+  padding: 28px 0;
+}
+
+.widgets > * {
+  margin: auto 0;
 }
 
 .calendar {
