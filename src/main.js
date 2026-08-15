@@ -1052,12 +1052,41 @@ async function renderWeather(city, lat, lon) {
   }
 }
 
+async function initWeatherFromIp() {
+  try {
+    const res = await fetch('https://ipwho.is/');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const g = await res.json();
+    if (g.success !== false && typeof g.latitude === 'number' && typeof g.longitude === 'number') {
+      return { city: g.city || g.country || 'Current location', lat: g.latitude, lon: g.longitude };
+    }
+    throw new Error('no location');
+  } catch {
+    return null;
+  }
+}
+
 function initWeather() {
   const saved = JSON.parse(localStorage.getItem('solartab:weather') || 'null');
   if (saved && typeof saved.lat === 'number' && typeof saved.lon === 'number') {
     renderWeather(saved.city || 'Saved location', saved.lat, saved.lon);
     return;
   }
+
+  let placed = false;
+  const place = (city, lat, lon) => {
+    if (placed) return;
+    placed = true;
+    saveWeather(city, lat, lon);
+    renderWeather(city, lat, lon);
+  };
+
+  const placeFromIp = async () => {
+    const loc = await initWeatherFromIp();
+    if (loc) place(loc.city, loc.lat, loc.lon);
+    else setLocationNone();
+  };
+
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -1073,13 +1102,13 @@ function initWeather() {
             city = g.city || g.locality || g.principalSubdivision || 'Current location';
           }
         } catch {}
-        saveWeather(city, lat, lon);
-        renderWeather(city, lat, lon);
+        place(city, lat, lon);
       },
-      setLocationNone
+      placeFromIp
     );
+    setTimeout(placeFromIp, 5000);
   } else {
-    setLocationNone();
+    placeFromIp();
   }
 }
 
