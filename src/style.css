@@ -172,8 +172,13 @@ button {
   font-size: 0.9rem;
 }
 
-.today {
+.date {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: clamp(1rem, 2.6vw, 1.5rem);
+  letter-spacing: 0.06em;
   color: var(--text-soft);
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.35);
 }
 
 .settings-btn {
@@ -308,6 +313,7 @@ button {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 24px;
   margin: 12px 0;
   animation: rise-in 0.8s ease both;
 }
@@ -324,7 +330,7 @@ button {
 }
 
 .clock {
-  margin: 8px 0 30px;
+  margin: 0;
   font-family: 'Manrope', sans-serif;
   font-size: clamp(3.5rem, 11vw, 7rem);
   line-height: 1;
@@ -341,7 +347,7 @@ button {
 .clock-edit {
   display: flex;
   gap: 12px;
-  margin: -18px 0 30px;
+  margin: 0;
   padding: 10px 14px;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
@@ -483,7 +489,7 @@ button {
 }
 
 .lucky {
-  margin-top: 14px;
+  margin-top: 0;
   padding: 8px 18px;
   border: none;
   border-radius: 8px;
@@ -677,7 +683,7 @@ button {
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-  margin-top: 26px;
+  margin-top: 0;
 }
 
 .link,
@@ -803,15 +809,20 @@ button {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   width: fit-content;
   max-height: 100vh;
   overflow-y: auto;
-  gap: 16px;
+  gap: 12px;
   padding: 28px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.widgets > * {
-  margin: auto 0;
+.widgets::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .calendar {
@@ -831,7 +842,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .calendar-title {
@@ -893,17 +904,31 @@ button {
 
 .overlays {
   position: fixed;
+  top: 0;
   left: clamp(24px, 10vw, 140px);
-  bottom: 24px;
+  bottom: 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
+  width: fit-content;
+  max-height: 100vh;
+  overflow-y: auto;
   gap: 12px;
+  padding: 28px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.overlays::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .widget-card {
-  width: 280px;
+  width: 224px;
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1014,7 +1039,7 @@ button {
 }
 
 .todo-title {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-family: 'Manrope', sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
@@ -1497,7 +1522,7 @@ body.widgets-editing [data-widget] .widget-x:hover {
 }
 
 .apod-explanation {
-  margin: 10px 0 0;
+  margin: 14px 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -1581,7 +1606,7 @@ body.widgets-editing [data-widget] .widget-x:hover {
 }
 
 .credit {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   text-align: center;
   font-size: 0.7rem;
   letter-spacing: 0.14em;
