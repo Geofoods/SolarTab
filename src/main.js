@@ -209,6 +209,19 @@ explainToggle.addEventListener('click', () => {
   explainToggle.hidden = !open && explanationEl.scrollHeight <= explanationEl.clientHeight;
 });
 
+const apodCard = document.querySelector('.apod');
+
+apodCard.addEventListener('click', (e) => {
+  if (e.target.closest('button, input, a, .apod-media')) return;
+  if (!bg.style.backgroundImage) return;
+  bg.classList.toggle('front');
+  bg.classList.toggle('hide-front', !bg.classList.contains('front'));
+});
+
+bg.addEventListener('animationend', (e) => {
+  if (e.animationName === 'bg-to-back') bg.classList.remove('hide-front');
+});
+
 function searchUrl(q, engine) {
   const urls = {
     google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
