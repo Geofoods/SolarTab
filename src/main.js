@@ -1159,76 +1159,200 @@ const WIDGET_DEFS = [
   { id: 'news', name: 'Space News', desc: 'Latest headlines' }
 ];
 
-function getWidgetsEnabled() {
-  const stored = JSON.parse(localStorage.getItem('solartab:widgets') || 'null');
+const WIDGET_PANELS = {
+  widgets: ['calendar', 'weather', 'todo'],
+  overlays: ['recents', 'iss', 'news']
+};
+
+function panelKeyForContainer(container) {
+  return container.classList.contains('overlays') ? 'solartab:overlays' : 'solartab:widgets';
+}
+
+function getPanelOrder(key) {
+  const stored = JSON.parse(localStorage.getItem(key) || 'null');
   if (Array.isArray(stored)) return stored;
-  return WIDGET_DEFS.map((w) => w.id);
+  return WIDGET_PANELS[key === 'solartab:overlays' ? 'overlays' : 'widgets'].slice();
 }
 
-function saveWidgets(enabled) {
-  localStorage.setItem('solartab:widgets', JSON.stringify(enabled));
+function savePanelOrder(key, list) {
+  localStorage.setItem(key, JSON.stringify(list));
 }
 
-function moveWidgetBefore(id, beforeId) {
-  const enabled = getWidgetsEnabled();
-  const from = enabled.indexOf(id);
-  const to = enabled.indexOf(beforeId);
-  if (from === -1 || to === -1 || from === to) return;
-  enabled.splice(from, 1);
-  enabled.splice(enabled.indexOf(beforeId), 0, id);
-  saveWidgets(enabled);
+let storageMigrated = false;
+
+function migrateWidgetStorage() {
+  if (storageMigrated) return;
+  storageMigrated = true;
+  if (localStorage.getItem('solartab:overlays') !== null) return;
+  const old = JSON.parse(localStorage.getItem('solartab:widgets') || 'null');
+  if (Array.isArray(old)) {
+    localStorage.setItem('solartab:widgets', JSON.stringify(old.filter((id) => WIDGET_PANELS.widgets.includes(id))));
+    localStorage.setItem('solartab:overlays', JSON.stringify(old.filter((id) => WIDGET_PANELS.overlays.includes(id))));
+  }
+}
+
+function getWidgetsEnabled() {
+  migrateWidgetStorage();
+  return [...getPanelOrder('solartab:widgets'), ...getPanelOrder('solartab:overlays')];
+}
+
+function ensureWidgetInPanel(id, container) {
+  const el = document.querySelector(`[data-widget="${id}"]`);
+  if (!el || !container || el.parentElement === container) return;
+  const anchor = container.querySelector(':scope > .widgets-actions');
+  if (anchor) container.insertBefore(el, anchor);
+  else container.appendChild(el);
+}
+
+function moveWidget(id, targetId, after) {
+  const el = document.querySelector(`[data-widget="${id}"]`);
+  const targetEl = targetId ? document.querySelector(`[data-widget="${targetId}"]`) : null;
+  if (!el || !targetEl) return;
+  const toPanel = targetEl.parentElement;
+  const fromPanel = el.parentElement;
+  if (!toPanel || !fromPanel) return;
+  const fromKey = panelKeyForContainer(fromPanel);
+  const toKey = panelKeyForContainer(toPanel);
+
+  const fromList = getPanelOrder(fromKey);
+  const from = fromList.indexOf(id);
+  if (from === -1) return;
+  fromList.splice(from, 1);
+  savePanelOrder(fromKey, fromList);
+
+  const targetList = fromKey === toKey ? fromList : getPanelOrder(toKey);
+  let to = targetList.indexOf(targetEl.dataset.widget);
+  if (to === -1) to = targetList.length;
+  if (after) to += 1;
+  targetList.splice(to, 0, id);
+  savePanelOrder(toKey, targetList);
+
+  if (fromPanel !== toPanel) {
+    const anchor = toPanel.querySelector(':scope > .widgets-actions');
+    if (anchor) toPanel.insertBefore(el, anchor);
+    else toPanel.appendChild(el);
+  }
   applyWidgets();
 }
 
-function makeReorderable(el, grip) {
-  let overDepth = 0;
-  grip.draggable = true;
-  grip.addEventListener('dragstart', (e) => {
-    el.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', el.dataset.widget);
+const dragState = { id: null, el: null, pointerId: null, startX: 0, startY: 0, moved: false, drop: null };
+
+function dropTargetFromPoint(x, y) {
+  const at = document.elementFromPoint(x, y);
+  const widget = at ? at.closest('[data-widget]') : null;
+  if (widget && widget !== dragState.el) {
+    const r = widget.getBoundingClientRect();
+    return { widget, after: y > r.top + r.height / 2 };
+  }
+  const panel = at && (at.closest('.widgets') || at.closest('.overlays'));
+  if (panel && !dragState.el.contains(at)) {
+    const others = [...panel.querySelectorAll(':scope > [data-widget]')].filter((w) => w !== dragState.el && !w.hidden);
+    if (others.length) return { widget: others[others.length - 1], after: true };
+  }
+  return null;
+}
+
+function clearDropIndicators() {
+  document.querySelectorAll('[data-widget].drag-over').forEach((w) => {
+    w.classList.remove('drag-over', 'drop-before', 'drop-after');
   });
-  grip.addEventListener('dragend', () => {
-    el.classList.remove('dragging');
-    document.querySelectorAll('[data-widget].drag-over').forEach((w) => w.classList.remove('drag-over'));
+}
+
+function setDropIndicator(drop) {
+  clearDropIndicators();
+  if (!drop) return;
+  dragState.drop = drop;
+  drop.widget.classList.add('drag-over', drop.after ? 'drop-after' : 'drop-before');
+}
+
+function cancelDrag(el) {
+  clearDropIndicators();
+  el.classList.remove('dragging');
+  document.body.classList.remove('widget-dragging');
+  dragState.id = null;
+  dragState.el = null;
+  dragState.moved = false;
+  dragState.drop = null;
+}
+
+function finishDrag(el) {
+  const drop = dragState.drop;
+  const id = dragState.id;
+  clearDropIndicators();
+  el.classList.remove('dragging');
+  document.body.classList.remove('widget-dragging');
+  dragState.id = null;
+  dragState.el = null;
+  dragState.moved = false;
+  dragState.drop = null;
+  if (!drop) return;
+  moveWidget(id, drop.widget.dataset.widget, drop.after);
+}
+
+function makeReorderable(el, grip) {
+  grip.draggable = false;
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest('button:not(.widget-grip), input, select, textarea, a, form')) return;
+    dragState.id = el.dataset.widget;
+    dragState.el = el;
+    dragState.pointerId = e.pointerId;
+    dragState.startX = e.clientX;
+    dragState.startY = e.clientY;
+    dragState.moved = false;
+    dragState.drop = null;
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault();
   });
 
-  el.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    overDepth++;
-    el.classList.add('drag-over');
-  });
-  el.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  });
-  el.addEventListener('dragleave', () => {
-    overDepth--;
-    if (overDepth <= 0) {
-      overDepth = 0;
-      el.classList.remove('drag-over');
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dragState.pointerId || dragState.el !== el) return;
+    if (!dragState.moved) {
+      if (Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY) < 6) return;
+      dragState.moved = true;
+      el.classList.add('dragging');
+      document.body.classList.add('widget-dragging');
     }
+    setDropIndicator(dropTargetFromPoint(e.clientX, e.clientY));
   });
-  el.addEventListener('drop', (e) => {
-    e.preventDefault();
-    overDepth = 0;
-    el.classList.remove('drag-over');
-    const id = e.dataTransfer.getData('text/plain');
-    if (!id || id === el.dataset.widget) return;
-    const fromEl = document.querySelector(`[data-widget="${id}"]`);
-    if (fromEl && fromEl.parentElement !== el.parentElement) return;
-    moveWidgetBefore(id, el.dataset.widget);
+
+  el.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== dragState.pointerId || dragState.el !== el) return;
+    if (dragState.moved) finishDrag(el);
+  });
+
+  el.addEventListener('pointercancel', () => {
+    if (dragState.el !== el) return;
+    cancelDrag(el);
   });
 }
 
 function applyWidgets() {
   const enabled = getWidgetsEnabled();
+  const right = getPanelOrder('solartab:widgets');
+  const left = getPanelOrder('solartab:overlays');
+  const rightPanel = document.querySelector('.widgets');
+  const leftPanel = document.querySelector('.overlays');
+
+  document.querySelectorAll('[data-widget]').forEach((el) => {
+    const id = el.dataset.widget;
+    if (!enabled.includes(id)) return;
+    const target = right.includes(id) ? rightPanel : left.includes(id) ? leftPanel : el.closest('.widgets, .overlays');
+    if (target && target !== el.parentElement) {
+      const anchor = target.querySelector(':scope > .widgets-actions');
+      if (anchor) target.insertBefore(el, anchor);
+      else target.appendChild(el);
+    }
+  });
+
   let overlaysVisible = false;
-  [document.querySelector('.widgets'), document.querySelector('.overlays')].forEach((container) => {
+  [rightPanel, leftPanel].forEach((container) => {
     if (!container) return;
+    const order = container === leftPanel ? left : right;
     const anchor = container.querySelector(':scope > .widgets-actions');
     [...container.querySelectorAll(':scope > [data-widget]')]
-      .sort((a, b) => enabled.indexOf(a.dataset.widget) - enabled.indexOf(b.dataset.widget))
+      .sort((a, b) => order.indexOf(a.dataset.widget) - order.indexOf(b.dataset.widget))
       .forEach((el) => {
         if (anchor) container.insertBefore(el, anchor);
         else container.appendChild(el);
@@ -1266,8 +1390,14 @@ function applyWidgets() {
 }
 
 function removeWidget(id) {
-  const cur = getWidgetsEnabled().filter((w) => w !== id);
-  saveWidgets(cur);
+  const el = document.querySelector(`[data-widget="${id}"]`);
+  const key = el && el.closest('.overlays') ? 'solartab:overlays' : 'solartab:widgets';
+  const list = getPanelOrder(key);
+  const idx = list.indexOf(id);
+  if (idx !== -1) {
+    list.splice(idx, 1);
+    savePanelOrder(key, list);
+  }
   applyWidgets();
 }
 
@@ -1305,10 +1435,21 @@ function openWidgetModal(mode) {
     btn.textContent = isAdd ? 'Add' : 'Remove';
     btn.className = isAdd ? 'pick-add' : 'pick-remove';
     btn.addEventListener('click', () => {
-      const cur = getWidgetsEnabled();
-      if (isAdd) cur.push(w.id);
-      else cur.splice(cur.indexOf(w.id), 1);
-      saveWidgets(cur);
+      const panelId = WIDGET_PANELS.widgets.includes(w.id) ? 'widgets' : 'overlays';
+      const key = panelId === 'overlays' ? 'solartab:overlays' : 'solartab:widgets';
+      const container = document.querySelector(`.${panelId}`);
+      const list = getPanelOrder(key);
+      if (isAdd) {
+        if (!list.includes(w.id)) list.push(w.id);
+        savePanelOrder(key, list);
+        ensureWidgetInPanel(w.id, container);
+      } else {
+        const idx = list.indexOf(w.id);
+        if (idx !== -1) {
+          list.splice(idx, 1);
+          savePanelOrder(key, list);
+        }
+      }
       applyWidgets();
       openWidgetModal(mode);
     });
